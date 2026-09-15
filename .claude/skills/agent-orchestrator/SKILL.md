@@ -1,0 +1,834 @@
+---
+name: agent-orchestrator
+description: Orchestrateur des agents et skills du projet — qualifie une demande de travail, compose un plan (cascade / parallèle / asynchrone, modèle par étape), l'exécute en s'appuyant sur le catalogue et les données du superviseur, puis journalise le run. Lance réellement du multi-agents via l'outil Agent (fan-out parallèle dans un même message, arrière-plan notifié, SendMessage pour continuer un sous-agent, isolation worktree pour les écritures concurrentes, modèle par agent). Sait aussi APPLIQUER une recommandation arbitrée du superviseur (findings de diagnostic.json des deux volets — usage des agents ET pratiques test/dev/revue/design) via le playbook evolution-flotte, puis enregistrer l'arbitrage. Traite la commande « adopte <trouvaille> » (verbe d'arbitrage de la veille) : applique la regle_proposee au référentiel/scan et l'action_corrective aux projets concernés, passe l'entrée de veille.json en adopte (ou ecarte) et trace l'arbitrage. CONVOQUE les 12 salles de table ronde du hub (§ 2 septies) quand la demande pose un choix à instruire — refonte, adoption, partition d un chantier, faux consensus — au lieu d un travail à exécuter : la salle délibère et rend un compte rendu qui alimente le plan, elle ne modifie aucun fichier. Route les skills BMAD installées par besoin détecté (v6.12.0 : 29 canoniques routées ; les 21 shims dépréciés, jamais invoqués, ont été retirés du hub le 2026-09-08 — table de § 2 quinquies : d'office pour les passes de lecture/critique qui rendent un rapport — revue, recherche, rétrospective ; annoncé-puis-validé dès qu'une skill coûte cher OU écrit un fichier réel — PRD, architecture, stories, code, documentation) et dispose pour cela de trois sous-agents porteurs de l'outil Skill — bmad-revue, bmad-recherche, veille-agentic ; les autres skills partent inline, quatre porteurs jamais invoques ayant ete mis en sommeil le 2026-09-01. Atteignable de trois façons : cette skill, le sous-agent agent-orchestrator (délégation d'une orchestration entière), ou la commande /orchestre. À charger quand une demande implique plusieurs étapes/agents, des vérifications obligatoires, ou « applique/traite la reco du superviseur » — ou quand la grille du hook UserPromptSubmit route ici.
+---
+
+# Agent orchestrateur (étages O-A + O-B + O-C)
+
+Données de routage :
+`.claude/orchestration/catalogue.md` (recommandations),
+`.claude/orchestration/routing-hints.json` (hints générés par le superviseur à chaque
+session : `eprouves`/`jamais_utilises`/`en_sommeil`, `verifications_oubliees` à insérer
+d'office, stats plan-vs-réel par playbook/agent, `prudence` issu du diagnostic étage 2),
+`docs/wiki/technical/agents-supervision.md` (tableau de bord humain des mêmes données) et
+`.claude/orchestration/playbooks/` (workflows récurrents — format dans `playbooks/FORMAT.md`).
+
+## Méthode — 5 étapes
+
+### 1. Qualifier (silencieux, jamais mentionné à l'utilisateur si exécution directe)
+
+- **Exécution directe** (pas d'orchestration, pas de journal) : une seule étape, un seul
+  agent/skill évident, micro-tâche, question, correction en cours de tâche.
+- **Orchestrer** : ≥ 2 étapes dépendantes, ≥ 2 agents/skills, vérifications obligatoires
+  en jeu (voir table), ou action difficilement réversible au milieu d'un enchaînement.
+  Orchestrer décide de la MÉTHODE (plan, modes, sous-agents) — pas du journal.
+- **Journaliser (`log_run.py`) — uniquement une correction ou un bug traité.** Arbitrage
+  utilisateur du 2026-09-07 : « ne prendre en compte à titre de run que les corrections et
+  bugs ». Un run journalisé est un livrable de correction : correctif de code, bug traité,
+  dette remboursée — avec sa preuve (commit, test) et, s'il ferme un finding, l'arbitrage de
+  clôture qui va avec. Tout le reste, même orchestré — état des lieux, propagation de canon,
+  réception d'un diagnostic ou d'une veille, reprise de travaux, cadrage, rapport — ne
+  s'inscrit PAS dans `runs.jsonl`. Mesuré au wiki du 2026-09-07 : 16 runs à solder, dont 6
+  aller-retours de slides et 6 « réception / reprise / lance les travaux » — du bookkeeping
+  qui gonfle un compteur que personne ne solde, et qui noie les seuls runs qui comptent.
+
+**Un aller-retour sur un livrable pas encore validé n'est jamais une nouvelle orchestration**
+(mesuré au wiki du 2026-09-07 : 38 runs `en-attente-validation` flotte-wide, l'essentiel du
+motif « refais la slide 3 », « toujours pas assez lisible », « ajoute X » sur un deck en
+cours — pas de nouvelle demande, la continuation de la même). C'est le cas « correction en
+cours de tâche » ci-dessus, donc exécution directe, jamais rejournalisé : le run déjà ouvert
+reste `en-attente-validation` jusqu'à validation (`--solde`) ou jusqu'à une demande qui change
+réellement de sujet (celle-là, orchestrable si elle qualifie). Journaliser un nouveau run à
+chaque aller-retour ne mesure rien : ça dilue le seul signal qui compte (le livrable est-il
+enfin validé ?) dans du bruit qu'aucun humain ne va soldé un par un.
+
+### 1 bis. Les signaux de SessionStart se traitent au premier message, pas sur demande
+
+Mesuré sur `runs.jsonl` le 2026-09-12 (157 runs) : 10 demandes portent sur « reprendre /
+relancer les travaux » et 20 sur « traiter les findings/écarts » — un motif récurrent que
+l'utilisateur a explicitement demandé de réduire. Le hook SessionStart annonce pourtant déjà
+tout ce qui justifie ces demandes (reliquat non commité, N commits jamais poussés,
+`point_du_jour.py` qui donne la commande exacte à taper). La reformulation répétée ne
+comble pas un manque d'information — elle comble l'absence d'un premier geste avant que
+l'utilisateur n'ait à la demander.
+
+**Règle** : quand le hook SessionStart signale un reliquat non commité ou des findings/
+trouvailles sans arbitrage, et que le premier message de l'utilisateur ne les mentionne pas
+déjà, les traiter (ou au minimum les proposer explicitement) AU PREMIER TOUR de la session —
+avant, ou en même temps que, la nouvelle demande. Ne pas attendre une formulation du type
+« relance les travaux », « traite les findings » : le signal du hook EST la demande. Ça ne
+dispense d'aucune des étapes qui suivent (qualifier, composer, valider si le geste est
+coûteux ou irréversible) — ça évite seulement d'attendre une redite de ce que le hook a
+déjà dit.
+
+**D'abord, chercher un playbook.** Si la demande matche les `declencheurs` d'un playbook
+de `.claude/orchestration/playbooks/`, l'instancier plutôt que composer à vide : adapter
+ses étapes à la demande **sans en retirer les vérifications obligatoires ni les
+checkpoints**, ne garder que les étapes conditionnelles applicables. Playbooks actuels :
+
+| Playbook | Pour | Statut |
+| --- | --- | --- |
+| `evolution-flotte` | Modifier un AUTRE projet de la flotte (corrige/rattache/déploie/propage sur VSCodeN) — cadrage sur l'état réel, commit scopé au périmètre | Éprouvé |
+| `dev-verifie` | Implémentation/correction avec tests + vérif réelle + revue finale avant commit | Importé, à confirmer |
+| `export-ppt-verifie` | Livrable = un deck PPT : génération + enrichissements conditionnels (cadres photo, polish, design) + `pptx-verify` obligatoire | Importé, à confirmer |
+| `revue-design-parallele` | Revue multi-angles d'un livrable en fan-out puis consolidation | Importé, à confirmer |
+
+Sinon composition libre depuis le catalogue + `routing-hints.json` : préférer les
+`eprouves`, prudence explicite sur les `jamais_utilises` et les cibles listées dans
+`prudence`, insérer d'office les `verifications_oubliees`. Pour chaque étape :
+**agent/skill**, **mode**, **modèle** (sous-agents uniquement), **contrat de sortie**.
+Suivre le plan avec TodoWrite. Règle de mode — *la dépendance de données décide* :
+
+| Mode | Quand | Garde-fous |
+| --- | --- | --- |
+| Synchrone (cascade) | L'étape suivante a besoin du résultat | Contrat de sortie vérifié avant de continuer |
+| Parallèle (fan-out) | Étapes indépendantes en lecture/analyse | ≤ 4 sous-agents, jamais d'écritures concurrentes sur les mêmes fichiers, consolidation obligatoire |
+| Asynchrone (arrière-plan) | Long, autonome, non bloquant | Attendre la notification — ne JAMAIS anticiper/fabriquer le résultat ; 1 seul chantier async lourd à la fois |
+| Irréversible (commit, suppression, publication) | — | Toujours synchrone + confirmation utilisateur, hooks/permissions jamais contournés |
+
+### 2 ter. Lancer réellement du multi-agents (mécanique de l'outil Agent)
+
+Les modes ci-dessus se CONCRÉTISENT par l'outil `Agent` (Task) — pas par une
+description d'intention. Les gestes exacts :
+
+- **Fan-out parallèle** : plusieurs appels `Agent` **dans le même message** =
+  lancement concurrent. Un appel par message = cascade involontaire (le 2e ne part
+  qu'à la fin du 1er). Chaque sous-agent part avec un contexte VIERGE : son prompt
+  doit être un **brief autoportant** — chemins absolus, exigence vérifiable, format
+  de réponse attendu (« données brutes », pas de prose), et le rappel qu'il rend un
+  RÉSULTAT (son texte final), pas un message à l'utilisateur. Et dès que le brief
+  autorise à « lancer l'app et regarder le rendu », la clause : **n'utiliser qu'un
+  serveur déjà en écoute qu'on n'a pas démarré ; ne jamais démarrer, redémarrer ni
+  purger un service du dépôt** — sinon écrire « non vérifié au rendu ». Une
+  vérification manquante annoncée vaut mieux qu'un service tiers tué (finding
+  `flotte:depot-au-repos-ne-voit-pas-un-serveur-en-cours`, § non-convergence).
+  **Gabarit bounded-efficiency** (veille adoptée 2026-09-12, arXiv:2608.01347 et
+  arXiv:2608.25399 — 2700 runs mesurés, un brief incomplet coûte +29,7 % de tokens
+  en moyenne, de +13 % à +115 % selon la tâche) : le brief porte, en plus de ce qui
+  précède, une **condition d'arrêt explicite** (qu'est-ce qui marque la tâche
+  finie ?) et une **clause anti-ambiguïté** (« si un point n'est pas couvert par ce
+  brief, l'inspecter dans le code réel plutôt que le supposer ») — les deux évitent
+  l'aller-retour qui coûte le plus cher, une reprise pour completer un brief bâclé.
+  Le contrat de sortie précise aussi un **budget de longueur** (viser 1000-2000
+  tokens condensés, pas une prose qui recopie tout ce qui a été lu) — sauf quand la
+  tâche exige explicitement le détail complet (revue de sécurité, audit).
+- **Arrière-plan** : `run_in_background: true` (défaut) rend la main immédiatement,
+  la notification arrive à la fin — ne jamais écrire le résultat à sa place ; s'il
+  faut le résultat pour continuer, `run_in_background: false` (synchrone).
+- **Continuer un sous-agent** : `SendMessage` avec son agentId (rendu à la fin de
+  son run) relance LE MÊME agent avec son contexte intact — toujours préférable à
+  re-briefer un agent neuf quand on itère sur le même sujet (revue → contre-revue).
+- **Modèle par agent** : paramètre `model` de l'appel (haiku/sonnet/opus) selon la
+  politique § modèle ci-dessous — le fan-out mécanique en haiku, la revue en sonnet,
+  le structurant en opus ; omis = modèle de la session.
+- **Écritures concurrentes** : deux sous-agents ne modifient JAMAIS les mêmes
+  fichiers en parallèle. Si le plan l'exige, `isolation: "worktree"` (worktree git
+  jetable par agent) ou sérialiser les étapes d'écriture — les lectures/analyses,
+  elles, se parallélisent sans limite autre que ≤ 4.
+- **Type d'agent** : `Explore` pour chercher/inventorier (lecture seule, économe),
+  `general-purpose` pour agir (outils complets), `Plan` pour concevoir une stratégie
+  d'implémentation. Le type se choisit par la nature de l'étape, pas par habitude.
+  **Types maison** (`.claude/agents/`, créés le 2026-07-30) — tous porteurs de l'outil
+  `Skill`, donc leurs invocations sont *comptées* par l'étage 1 :
+
+  | Sous-agent | Pour | Modèle |
+  | --- | --- | --- |
+  | `bmad-revue` | Revue de code/diff, critique adversariale, cas limites, revue rédactionnelle, rétrospective (§ 2 quinquies) | opus |
+  | `bmad-recherche` | Recherche technique / domaine / marché, idéation | sonnet |
+  | `veille-agentic` | Veille agentic sur cadence (§ 2 sexies) — écrit `veille.json`, n'adopte rien | sonnet |
+  | `agent-supervisor` | Diagnostic étage 2 délégué — s'appuie sur `bmad-revue` et `veille-agentic` pour prouver ses findings, écrit `diagnostic.json`, n'applique rien | opus |
+  | `agent-securite` | Audit de sécurité ponctuel (secrets, supply chain, drift `.claude/**`, historique git, CI/CD, OWASP ASI) — à la demande uniquement, jamais en tâche de fond, complète la dimension `securite` d'`audit-technique` sans l'écraser, n'applique rien | opus |
+
+  **Quatre porteurs ont été mis en sommeil le 2026-09-01** (`agent-orchestrator`,
+  `bmad-cadrage`, `bmad-doc`, `bmad-livraison`) : jamais invoqués en 33 jours, ils sont
+  sortis vers `.claude/agents-en-sommeil/`, qui porte la mesure et la façon de les
+  réveiller. Les rangées de la table BMAD qui les nommaient portent maintenant `inline` :
+  la skill reste routée, elle part dans la conversation courante.
+
+  Le fait qui a pesé : les deux seules skills BMAD jamais chargées le sont **sans
+  porteur** (`bmad-party-mode` par les salles, `bmad-customize` en direct), et
+  `bmad-revue` a tourné 7 fois sans en charger une seule. Le porteur n'est donc pas le
+  mécanisme qui fait partir une skill — c'est ce que dit déjà le § 2 quinquies (« une
+  skill BMAD dont le travail tient dans la conversation courante s'invoque inline »).
+
+  Ce paragraphe a d'abord été inséré AU MILIEU de la table, laissant deux rangées
+  orphelines derrière lui — dont `agent-orchestrator`, qu'il déclarait endormi dans la
+  même phrase. Corrigé le 2026-09-01 : la table est au-dessus, entière, et ne liste que
+  les porteurs réellement adressables.
+- **Consolidation obligatoire** : un fan-out sans étape de synthèse qui recroise les
+  résultats (doublons, contradictions, trous) n'est pas un plan — c'est du bruit
+  distribué. La consolidation est une étape à part entière du plan journalisé. Chaque
+  étape du plan porte désormais un champ optionnel `etat` (`ok` | `echec` | `non-rendu`,
+  détail § 5) : un sous-agent d'un fan-out qui échoue ou ne rend rien doit l'y porter,
+  pas être absorbé silencieusement par la synthèse (motif OrchestraBench,
+  arXiv:2608.05263, veille 2026-09-08).
+- **Non-convergence d'un sous-agent d'arrière-plan** (veille adoptée 2026-09-03,
+  incident source : un audit-technique resté `running` 4h+ contre 8-17 min pour
+  4 tâches comparables). Ni `maxTurns` en frontmatter (non fiable sur les
+  sous-agents — issue publique fermée non planifiée) ni aucun timeout mural natif
+  du SDK n'existent : la seule mesure disponible est `duree_s`, calculée par
+  `log_usage.py` sur un `SubagentStop` non ambigu (un seul lancement `Agent`
+  ouvert pour la session à ce moment — deux lancements concurrents ne produisent
+  volontairement AUCUNE durée, une durée devinée étant pire qu'aucune). Passé
+  3 à 5× la durée p95 des runs comparables déjà journalisés sans notification,
+  vérifier l'état (`TaskOutput` non bloquant) plutôt qu'attendre indéfiniment ;
+  si non convergent, `TaskStop` et relancer proprement — jamais fabriquer un
+  résultat à la place d'un sous-agent qui n'a rien rendu (même règle que le
+  mode asynchrone ci-dessus, étendue au silence total). Avant de dispatcher un
+  sous-agent de lecture/audit sur un dépôt distant de la flotte, vérifier qu'il
+  est au repos (deux relevés `git status --porcelain` espacés qui diffèrent =
+  session tierce active, cause probable de non-convergence par contention)
+  **et qu'il n'est pas en usage** — un dépôt propre côté git peut être en pleine
+  utilisation. Relever les processus dont la ligne de commande cite le chemin du
+  dépôt et leurs ports en écoute :
+  `Get-CimInstance Win32_Process | ? { $_.CommandLine -like '*<dépôt>*' } | select ProcessId, CommandLine`
+  puis `Get-NetTCPConnection -State Listen -OwningProcess <pid>`. **Un port actif =
+  aucune étape qui lance, redémarre ou purge un service**, ou la dégrader en lecture
+  seule. Finding `flotte:depot-au-repos-ne-voit-pas-un-serveur-en-cours` (2026-09-08) :
+  le contrôle git était passé, et le sous-agent a tué le serveur 8020 de l'utilisateur
+  en pleine session d'enregistrement — 9 segments de transcription perdus.
+
+**Sous-agents ou agent team ?** (veille 2026-07-29, doc officielle Anthropic). Les
+sous-agents restent le DÉFAUT : ils rendent un résultat au demandeur et ne se parlent
+jamais entre eux — coût bas, contexte principal préservé. Une *agent team* (équipiers
+qui se messagent via une liste de tâches partagée) ne se justifie que si les
+travailleurs doivent **se coordonner ou se contredire entre eux** : revue multi-angles
+avec débat, hypothèses concurrentes qu'on veut voir se réfuter, chantier transverse où
+chacun possède sa couche. Elle est **expérimentale, désactivée par défaut**
+(`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`) et son coût croît linéairement avec le
+nombre d'équipiers — chacun est une session Claude complète. Garde-fous officiels si
+elle est retenue : 3-5 équipiers, 5-6 tâches par équipier, **partition stricte des
+fichiers** (deux équipiers sur le même fichier = écrasement), démarrer par des tâches
+de recherche/revue. Le plan journalisé doit **justifier le véhicule choisi** — un
+fan-out de sous-agents non justifié comme team est le défaut attendu, pas un manque.
+
+**Fan-out manuel ou dynamic workflow ?** (veille 2026-08-31, adoptée le jour même.) Le
+fan-out de l'outil `Agent` reste le défaut : il tient dans un message, se lit dans le
+plan journalisé, et couvre les ≤ 4 sous-agents que ce hub dispatche d'ordinaire. Passé
+cette taille, il montre ses limites — les appels sont réécrits à la main à chaque
+relance, et rien ne recroise mécaniquement les résultats entre eux. Un **dynamic
+workflow** (outil `Workflow`, skill `workflow-authoring`) est un script réexécutable
+qui orchestre des dizaines de sous-agents et **rejoue les étapes inchangées depuis leur
+cache** : il se justifie quand (1) le plan dépasse une poignée de sous-agents, (2) les
+résultats doivent être **vérifiés les uns contre les autres** (chaque finding d'une
+passe re-vérifié par un agent dédié), ou (3) la même campagne sera relancée après
+correction. Deux garde-fous : il ne se lance que sur **opt-in explicite de
+l'utilisateur** (mot-clé « ultracode », demande d'orchestration multi-agents, ou skill
+qui l'ordonne) — jamais sur la seule initiative de l'orchestrateur, parce qu'il coûte
+cher ; et le plan journalisé doit **dire pourquoi** le véhicule a été choisi, exactement
+comme pour les agent teams.
+
+**Aucun agent/skill ne couvre le besoin ?** Ne pas improviser sans le signaler — escalade
+en trois temps, dans cet ordre :
+
+1. **Mémoire git** : `py .claude/orchestration/git_agents_inventory.py` inventorie tous
+   les agents/skills que git connaît — **présents et supprimés** (un agent adapté a pu
+   être retiré lors d'un nettoyage). `--json` pour la version structurée.
+2. **Restauration** : si un agent supprimé matche, montrer son contenu
+   (`git show <commit>^:<chemin>`, la commande exacte est dans la colonne « Restaurer »)
+   et **proposer** sa restauration — décision utilisateur, jamais de restauration
+   silencieuse.
+3. **Évolution ou création** : sinon, proposer soit l'évolution de l'agent/skill existant
+   le plus proche (étendre ses déclencheurs/son périmètre), soit la création d'un nouveau
+   via `skill-creator` — avec un mini-brief (nom, déclencheurs, périmètre, ce qui manque
+   aux existants). C'est une décision de périmètre : toujours la faire arbitrer par
+   l'utilisateur avant d'écrire quoi que ce soit.
+
+Dans les trois cas, noter la résolution dans le `notes` du run journalisé
+(`"resolution: restauration <nom>"` / `"resolution: evolution <nom>"` /
+`"resolution: creation <nom>"`) — le superviseur s'en servira pour détecter les trous
+récurrents du catalogue.
+
+### 2 bis. Agir sur une recommandation du superviseur
+
+Le superviseur *propose* (findings de `diagnostic.json`, avec un champ `proposition`),
+l'utilisateur *arbitre*, **l'orchestrateur applique la version validée** — c'est la
+boucle propose→arbitre→applique. Quand la demande est « applique la reco X », « traite le
+finding Y », « corrige le point de pratique Z » (ou plus large : « traite tout ») :
+
+1. **Lire les propositions** dans `.claude/supervision/diagnostic.json` (les mêmes que la
+   section « Pratiques, couverture & risques » et les findings du wiki). Chaque finding
+   porte `categorie`, `cible`, `titre`, `preuve`, `recommandation`, `proposition`. Les
+   deux volets sont traitables :
+   - **Usage des agents** (`ko-repete`, `inefficacite`, `agent-mort`, `interaction`,
+     `verification-manquante`, `non-convergence`) → la proposition amende un skill, un
+     playbook, un contrat d'étape, ou met un agent en sommeil.
+   - **Pratiques d'ingénierie** (`pratique-test`, `pratique-dev`, `pratique-revue`,
+     `pratique-design`) → la proposition installe un outil (coverage, linter), câble un
+     hook (revue pré-commit), greffe une skill (`deck-design-review`), ou impose un audit
+     `audit-technique` sur un projet cible.
+   - **Documentation** (`pratique-doc`) → remédiation via `bmad-project-context`
+     (règles agent d'un dépôt, brownfield compris), ou rédaction directe d'un
+     README/CLAUDE.md manquant. La v6.12.0 a retiré `bmad-index-docs`, `bmad-shard-doc`
+     et le tech-writer Paige **sans remplaçant** : sur ces trois besoins, la rédaction
+     directe est le seul chemin restant.
+   - **Cadrage produit** (`pratique-produit`) → remédiation via `bmad-product-brief`,
+     `bmad-prd`, `bmad-forge-idea`, `bmad-agent-analyst`/`bmad-agent-pm` — famille
+     `bmad-cadrage`, régime **proposé** (§ 2 quinquies) : l'orchestrateur annonce le
+     livrable de cadrage visé et attend le feu vert avant de lancer.
+2. **N'appliquer QUE l'arbitré.** Si l'utilisateur n'a pas explicitement validé, présenter
+   la proposition et demander l'arbitrage — jamais d'auto-application, même « évidente »
+   (gouvernance stricte, identique côté superviseur). « Traite tout » vaut arbitrage de
+   l'ensemble des findings ouverts.
+3. **Choisir le véhicule d'exécution** selon la cible de la proposition :
+   - proposition qui touche **un autre projet de la flotte** (installer un linter sur
+     VSCode2, greffer une skill sur VSCode4…) → instancier le playbook **`evolution-flotte`**
+     (cadrage sur l'état réel → modif scopée → vérifs → commit limité au périmètre → wiki
+     → journal).
+   - proposition qui touche **ce projet-ci** (un skill/playbook/script local) → édition
+     directe suivie de la vérification adaptée (py_compile, JSON valide, test).
+4. **Enregistrer l'arbitrage** une fois appliqué : `.claude/supervision/arbitrages.json`
+   (champ `cible` = celle du finding, `decision` = « ACCEPTÉ + APPLIQUÉ : <ce qui a été
+   fait> »). Le scan clôt alors le finding (le wiki cesse de l'afficher en alerte). Un
+   finding **refusé** par l'utilisateur s'y note aussi (« REFUSÉ : <raison> ») pour ne pas
+   le re-proposer.
+5. **Un travail laissé OUVERT se journalise en *finding*, jamais en *arbitrage*.**
+   Finding `flotte:23-items-cadres-sans-canal-arbitrable` (2026-09-04) : un cadrage de
+   23 items (aucun corrigé, juste évalués effort/risque) avait été tracé comme une
+   entrée `arbitrages.json` — le fichier des décisions **closes** — alors que son propre
+   texte disait « les items restent ouverts ». Résultat mesuré : `point_du_jour.py`
+   répondait le soir même « rien n'attend votre arbitrage », et les 4 dépôts cibles
+   n'avaient aucune trace locale à consulter en cross-session (2 sans session pair pour
+   recevoir un `SendMessage`). `arbitrages.json` trace une **décision prise** (accepté,
+   refusé, différé sur demande explicite) — jamais une **liste de travail restant à
+   faire**. Un cadrage, une transmission par message à une session pair qui n'a pas
+   encore répondu, ou un item explicitement hors périmètre du tour : ça va dans le
+   `diagnostic.json` de la cible concernée (via `write_diagnostic.py --fusionner`, qui
+   préserve les findings déjà ouverts de cette cible au lieu de les écraser — le mode
+   par défaut n'a de sens que pour le diagnostic du hub lui-même, requalifié en entier
+   à chaque passage d'`agent-supervisor`), jamais dans `arbitrages.json`.
+
+Journaliser le run avec `resolution:` dans les notes et la ou les cibles traitées.
+
+### 2 quater. La commande `adopte` — arbitrer une trouvaille de veille
+
+`adopte <trouvaille>` (ou « adopte la pratique X », « adopte l'entrée Y ») est **le
+verbe d'arbitrage de la veille**, symétrique de « applique le finding » pour le
+diagnostic. La veille *propose* (entrées de `.claude/veille/veille.json`, statut
+`nouveau`/`etudie`), l'utilisateur *adopte*, **l'orchestrateur applique** — puis trace.
+Une entrée `ecarte` se refuse de la même façon (« écarte X »), avec sa raison.
+
+**Ce que la commande déclenche, dans l'ordre :**
+
+1. **Retrouver l'entrée** dans `.claude/veille/veille.json` par titre, url ou mot-clé.
+   Ambiguë ou absente → demander laquelle, ne jamais deviner : adopter la mauvaise
+   pratique coûte plus cher que la question.
+2. **Cadrer sur l'état RÉEL** (R1) : la trouvaille peut être déjà satisfaite, ou l'être
+   autrement. Vérifier dans le code des projets concernés (`projets_concernes`) avant
+   d'écrire quoi que ce soit. Correction minimale > refonte.
+3. **Appliquer les deux débouchés** que porte l'entrée, quand ils existent :
+   - `regle_proposee` → **règle d'analyse** : l'inscrire au référentiel
+     `docs/wiki/technical/criteres-pratiques.md`, et si elle est mesurable à froid,
+     l'outiller dans le scanner du HUB (`scripts/scan_projets.py`, qui n'existe que là
+     — le scanner déployé chez une cible est `.claude/supervision/scan_transcripts.py`)
+     avec ses
+     tests de non-régression. C'est ce qui fait passer un critère ⬜ en ✅.
+   - `action_corrective` → **le correctif lui-même** : sur un autre dépôt, via le
+     playbook `evolution-flotte` (cadrage réel → modif scopée → vérifs → commit scopé) ;
+     sur le hub, édition directe + vérification adaptée.
+   Une entrée de type `agent`/`skill`/`outil`/`framework` (volet 1) n'a pas ces champs :
+   l'adoption y est une **installation ou une greffe** sur les projets concernés, à
+   cadrer explicitement — jamais un `git clone` exécuté sans lecture préalable.
+4. **Vérifier par les faits**, comme tout chantier : tests réels du projet cible, rendu
+   regardé si UI, mesure du scan re-jouée si la règle est outillée.
+5. **Tracer**, deux écritures distinctes et toutes deux obligatoires :
+   - `statut` de l'entrée → `adopte` (ou `ecarte` + raison), avec en fin de
+     `pertinence` un crochet daté disant ce qui a réellement été fait ;
+   - une entrée dans `arbitrages.json` à la cible `veille:<slug>` — sans elle, le
+     wiki continuera d'afficher la trouvaille comme en attente de décision.
+6. **Journaliser** le run avec `resolution: adoption <nom>` dans les notes.
+
+**Garde-fous.** Jamais d'exécution de code téléchargé pendant l'adoption (la veille
+observe, l'adoption intègre du code LU). Jamais d'activation d'une capacité
+expérimentale par défaut : documenter le critère de choix vaut adoption, poser la
+variable d'environnement est une décision séparée. Et une pratique déjà généralisée sur
+la flotte ne s'« adopte » pas : elle se constate — le dire plutôt que produire un diff
+cosmétique.
+
+### 2 quinquies. Router vers les skills BMAD
+
+BMAD-METHOD est installé ici (**v6.12.0**, core + bmm) : **29 skills canoniques sur le
+disque du hub** — les seules que la table ci-dessous route. Les **21 shims dépréciés** que la
+migration avait retenus par défaut ont été **retirés du hub le 2026-09-08** : 0 invocation
+depuis leur installation et ~2 180 tokens de listing payés à chaque tour (finding
+`VScode5:33-skills-bmad-jamais-invoquees-cout-listing`, mesuré par `/skill-doctor` du
+2026-09-07). Les projets de la flotte les portent encore tant que leur propre mesure ne les a
+pas jugés : leur compte reste plus élevé que celui du hub, et il n'est pas uniforme —
+mesuré le 2026-09-08, 46 chez VSCode1, 50 chez VSCode2/3/4, 71 chez VSCode. Un chiffre lu
+ici ne vaut donc que pour le hub ; sur une cible, le compter avant de s'en réclamer.
+Elles couvrent cadrage produit, conception, planification, implémentation, revue,
+documentation et recherche.
+La migration 6.10.0 → 6.12.0 (pilote du 2026-09-07) a consolidé cinq familles : les cinq
+lentilles de revue dans `bmad-review`, les trois recherches dans `bmad-deep-recon`, les deux
+skills de contexte projet dans `bmad-project-context`, `bmad-quick-dev`/`bmad-dev-story` dans
+`bmad-build`, et `bmad-sprint-status` dans `bmad-sprint-planning`.
+Jusqu'au 2026-07-30 elles étaient réservées à la « demande explicite, via `bmad-help` » —
+résultat mesuré par l'étage 1 : **0 invocation sur 113 sessions**, et un TODO
+`agent-mort` ouvert au wiki. La règle a changé (arbitrage utilisateur du 2026-07-30) :
+**elles font partie du workflow**, et c'est l'orchestrateur qui les déclenche quand le
+besoin matche — plus besoin que l'utilisateur les nomme.
+
+**Deux régimes de déclenchement, deux critères cumulatifs : le coût ET l'écriture.**
+
+- **D'office** — la skill est bornée *et* ne produit qu'un rapport : une passe de
+  lecture ou de critique, sans cascade et sans toucher au disque. L'orchestrateur
+  l'insère dans le plan comme n'importe quelle autre étape, sans demander.
+- **Proposé** — la skill remplit au moins l'une de ces conditions :
+  1. elle ouvre un **workflow multi-étapes** produisant des artefacts structurants
+     (PRD, architecture, epics, code) ou mobilise plusieurs personas — le coût ;
+  2. elle **écrit, déplace ou restructure un fichier réel** — même vite, même bien.
+  L'orchestrateur **annonce l'étape et attend le feu vert**.
+
+Le second critère est arrivé après coup (finding `orchestrateur:regime-office-ecriture`,
+diagnostic du 2026-07-30, arbitré le jour même). La première version ne pesait que le
+coût, et laissait donc partir sans arbitrage `bmad-document-project`, `bmad-index-docs`,
+`bmad-shard-doc` et `bmad-agent-tech-writer` — quatre skills qui écrivent dans le dépôt.
+(Ces quatre noms sont ceux de 2026-07-30 : la v6.12.0 en a retiré trois sans remplaçant et
+a fait de la quatrième un shim vers `bmad-project-context`. Le critère, lui, n'a pas bougé —
+il porte aujourd'hui sur `bmad-project-context`.)
+Or **R4 ne parle pas de coût, il parle d'auto-application** : une écriture non arbitrée
+la viole, qu'elle prenne dix secondes ou dix minutes. Le régime ne juge donc pas la
+qualité d'une skill — il dit qui autorise la dépense *et* qui autorise le diff.
+
+**Où ces skills ont un objet.** Le hub ne produit pas de livrable applicatif : sur
+lui-même, seules les familles revue / documentation / recherche / rétro ont du sens.
+Cadrage, conception, planification et implémentation visent **les projets de la flotte**
+(VSCode1 et VSCode2 ont du code, VSCode3 et VSCode4 des decks) — donc via le playbook
+`evolution-flotte`, avec son commit scopé (R2). Router `bmad-sprint-planning` sur le hub
+produirait un artefact sans lecteur.
+
+<!-- BMAD-ROUTAGE:START — table verrouillée par tests/test_orchestration_bmad.py :
+     toute skill bmad-* installée doit y figurer (ou dans la liste des dépréciées),
+     et le sous-agent porteur cité doit exister dans .claude/agents/. -->
+
+| Besoin détecté dans la demande | Skill BMAD | Sous-agent porteur | Déclenchement |
+| --- | --- | --- | --- |
+| Revoir un diff, une PR, du code écrit dans la séance | `bmad-code-review` | `bmad-revue` | d'office |
+| Critiquer un livrable non-code, chasser ses cas limites, ses écarts de vérification, sa prose ou sa structure — lentilles à nommer dans le brief | `bmad-review` | `bmad-revue` | d'office |
+| Faire relire un changement par un humain (checkpoint, walkthrough) | `bmad-walkthrough` | `bmad-revue` | d'office |
+| Approfondir une sortie récente (socratique, prémortem, red team) | `bmad-advanced-elicitation` | `bmad-revue` | d'office |
+| Rétrospective de fin d'epic ou d'incrément | `bmad-retrospective` | `bmad-revue` | d'office |
+| S'orienter dans le catalogue BMAD, choisir la bonne skill | `bmad-help` | `bmad-revue` | d'office |
+| Documenter un dépôt existant (brownfield) et y écrire les règles agent (bloc AGENTS.md) | `bmad-project-context` | `inline` | proposé |
+| Recherche pour décider — technique, domaine/secteur, marché, concurrence, voix client, littérature ; type à nommer dans le brief | `bmad-deep-recon` | `bmad-recherche` | d'office |
+| Idéation cadrée sur un problème ouvert | `bmad-brainstorming` | `bmad-recherche` | d'office |
+| Brief produit initial | `bmad-product-brief` | `inline` | proposé |
+| PRD — créer, éditer ou valider | `bmad-prd` | `inline` | proposé |
+| PRFAQ Working Backwards (concept client-first) | `bmad-prfaq` | `inline` | proposé |
+| Durcir une idée par interrogation adverse | `bmad-forge-idea` | `inline` | proposé |
+| Distiller une intention en noyau SPEC machine | `bmad-spec` | `inline` | proposé |
+| Analyse métier et exigences (Mary) | `bmad-agent-analyst` | `inline` | proposé |
+| Cadrage produit conduit par un PM (John) | `bmad-agent-pm` | `inline` | proposé |
+| Architecture technique (colonne d'invariants) | `bmad-architecture` | `inline` | proposé |
+| Conception système conduite par un architecte (Winston) | `bmad-agent-architect` | `inline` | proposé |
+| Specs UX, patterns d'interaction | `bmad-ux` | `inline` | proposé |
+| Design UX/UI conduit par une designer (Sally) | `bmad-agent-ux-designer` | `inline` | proposé |
+| Table ronde multi-personas / focus group | `bmad-party-mode` | `inline` | proposé |
+| Customiser une skill BMAD (party, personas, overrides de config) | `bmad-customize` | `inline` | proposé |
+| Découper des exigences en epics et stories | `bmad-create-epics-and-stories` | `inline` | proposé |
+| Plan de sprint depuis les epics, état du sprint, gate « prêt à implémenter » | `bmad-sprint-planning` | `inline` | proposé |
+| Changement significatif en cours de sprint | `bmad-correct-course` | `inline` | proposé |
+| Implémenter une intention, une story, un correctif — code écrit, revu, vérifié | `bmad-build` | `inline` | proposé |
+| Boucle de développement non surveillée (une itération) | `bmad-build-auto` | `inline` | proposé |
+| Exécution d'histoire conduite par un dev senior (Amelia) | `bmad-agent-dev` | `inline` | proposé |
+| Générer des tests e2e sur une feature existante | `bmad-qa-generate-e2e-tests` | `inline` | proposé |
+
+**Le gel de `bmad-customize` est LEVÉ** (arbitrage utilisateur du 2026-07-31). L'arbitrage
+`skills-jamais-utilisees` du 2026-07-27 avait posé « aucune customisation jusqu'à la v7 » :
+la customisation attendait une version qui n'est toujours pas sortie (v6.12.0 installée le
+2026-09-07, aucun tag `v7*`). La décision est de **rester en v6 et de
+customiser dès maintenant** plutôt que d'attendre indéfiniment — un gel conditionné à un
+événement qui ne vient pas est un gel définitif qui ne dit pas son nom.
+
+Ce que la levée change, et ce qu'elle ne change pas :
+
+- `bmad-customize` **est routable**, en régime **proposé** — elle écrit un fichier réel
+  (`_bmad/custom/<skill>.toml` ou `.user.toml`) : l'orchestrateur annonce l'étape et attend
+  le feu vert, comme pour toute écriture (R4 s'applique en entier, il n'a jamais parlé de v6
+  ou de v7).
+- Une customisation reste une **modification de fichier de configuration** : elle passe par
+  la skill, jamais par une édition manuelle de `customize.toml` (marqué « DO NOT EDIT —
+  overwritten on every update »), et jamais par un script qui l'écrirait automatiquement.
+- La **migration** vers la v7, quand elle sortira, redevient une décision à part entière :
+  les overrides écrits en v6 devront être re-vérifiés à ce moment-là.
+
+**Quatre skills ont été RETIRÉES sans shim** par la v6.12.0 — les nommer ne redirige nulle
+part, elles ne sont plus sur le disque : `bmad-index-docs` et `bmad-shard-doc` (aucun
+remplaçant : rédiger directement), `bmad-check-implementation-readiness` (absorbée par
+`bmad-sprint-planning`, qui porte désormais la gate), `bmad-agent-tech-writer` — le persona
+Paige est retiré du catalogue, ce qui fait passer les agents BMAD installés de 6 à 5.
+
+**Jamais routées** — **dépréciées par BMAD** (21 noms, retirés en v7). Au hub, leurs shims
+de compatibilité ont été **retirés du disque le 2026-09-08** et `installShims` passé à
+`false` au manifeste (c'est ce drapeau, opt-in depuis la v6.12.0, qui les réinstallerait à
+la prochaine mise à jour) ; chez les cibles ils peuvent subsister. Dans les deux cas, si
+l'utilisateur les nomme, router vers la skill canonique et le dire :
+`bmad-create-prd`, `bmad-edit-prd`, `bmad-validate-prd` → utiliser `bmad-prd` ;
+`bmad-create-architecture` → utiliser `bmad-architecture` ;
+`bmad-review-adversarial-general`, `bmad-review-edge-case-hunter`, `bmad-review-verification-gap`, `bmad-editorial-review`, `bmad-editorial-review-prose`, `bmad-editorial-review-structure` → utiliser `bmad-review` et nommer la lentille ;
+`bmad-technical-research`, `bmad-domain-research`, `bmad-market-research` → utiliser `bmad-deep-recon` et nommer le type ;
+`bmad-document-project`, `bmad-generate-project-context` → utiliser `bmad-project-context` ;
+`bmad-quick-dev`, `bmad-dev-story`, `bmad-create-story` → utiliser `bmad-build` ;
+`bmad-dev-auto` → utiliser `bmad-build-auto` ;
+`bmad-checkpoint-preview` → utiliser `bmad-walkthrough` ;
+`bmad-sprint-status` → utiliser `bmad-sprint-planning`.
+
+<!-- BMAD-ROUTAGE:END -->
+
+**Faut-il toujours passer par le sous-agent porteur ?** Non — le porteur sert à
+*isoler* un travail BMAD long dans un contexte à lui, ou à en paralléliser plusieurs.
+Quand la session principale est déjà sur le sujet et que la skill est bornée
+(`bmad-advanced-elicitation` sur ce qu'on vient d'écrire, `bmad-help` pour trancher),
+l'invoquer **inline** est plus direct et compte pareil au tableau de bord. La règle :
+> une skill BMAD dont le travail tient dans la conversation courante s'invoque inline ;
+> une skill qui va lire beaucoup de fichiers ou produire un gros artefact part en
+> sous-agent, brief autoportant compris (§ 2 ter).
+
+**Le brief nomme la skill — sinon « d'office » n'est une consigne pour personne.** Règle
+posée le 2026-09-02, sur demande utilisateur de vérifier une information affichée par le
+site. Elle était exacte, et pire que ce qu'elle disait : sur les **46 skills BMAD
+installées, 2 seulement** avaient jamais été invoquées — `bmad-party-mode` (7 fois, par
+les salles) et `bmad-customize` (1 fois, en direct), **toutes deux sans porteur**. Le
+porteur `bmad-revue`, lui, a tourné **5 fois sans en charger une seule**, alors que son
+mandat dit « invoque réellement les skills bmad-* » et qu'il déclare un champ
+`SKILL INVOQUÉE` dans son contrat de sortie.
+
+La cause n'est pas l'installation : les 46 skills sont bien là, au hub comme chez les
+cibles (une exception, VSCode2 à 39). La cause est que **rien dans la chaîne ne portait
+le nom de la skill à charger** — la table le dit à l'orchestrateur, le mandat le dit au
+porteur, et le brief, seul document que le porteur reçoit réellement, se taisait. Trois
+gestes, désormais obligatoires :
+
+1. **Le brief porte le nom exact.** Dispatcher un porteur sans écrire « invoque
+   `bmad-code-review` via l'outil `Skill` » revient à espérer qu'il retrouve la table
+   tout seul — il ne l'a pas, son contexte est vierge (§ 2 ter). Le nom va dans le
+   brief, pas dans l'intention.
+2. **L'invocation est un contrat de sortie, donc vérifiable.** Le rapport doit ouvrir
+   sur `SKILL INVOQUÉE : <nom>` ou sur `aucune` avec sa raison. Un rapport qui déclare
+   une skill sans que l'étage 1 ait vu passer le `tool_use` correspondant est un écart
+   mesurable, pas une question de confiance — le scan compte les invocations, sidechains
+   comprises.
+3. **Contrat non rempli → une relance ciblée, puis escalade** (§ 4), comme pour toute
+   étape. Ne pas récrire le rapport à la place du porteur : ce serait reproduire à la
+   main exactement ce qu'on cherche à faire faire par la skill.
+
+Et la contrepartie honnête : si la skill n'apporte rien sur ce besoin précis, le porteur
+écrit `aucune` et explique. Un rapport franc sans skill vaut mieux qu'un nom emprunté —
+c'est le compteur d'usage qu'on veut juste, pas gonflé.
+
+**Porteur indisponible : dégrader, jamais abandonner l'étape.** Le registre des types
+d'agents est chargé au **démarrage de session** — un sous-agent créé pendant la séance
+peut ne pas être adressable tout de suite (constaté le 2026-07-30 : `subagent_type:
+agent-supervisor` refusé dans la session même qui venait d'écrire le fichier ; les 8
+types sont apparus plus tard dans la séance). Un `subagent_type` invalide ne justifie
+donc pas de sauter l'étape :
+
+1. **Invoquer la skill inline** (outil `Skill`) — le travail est fait, et l'invocation
+   est comptée exactement pareil par l'étage 1.
+2. Si l'isolement du contexte est vraiment nécessaire, dispatcher `general-purpose` avec
+   le contenu du mandat du porteur en brief, **et les interdits recopiés explicitement**
+   (un `general-purpose` a tous les outils : les garde-fous structurels du porteur —
+   par exemple l'absence de `Write`/`Edit` du superviseur — deviennent de simples
+   consignes, ce qui doit être dit dans le brief et dans le journal).
+3. **Tracer** dans les notes du run : `resolution: porteur-indisponible <nom>`. C'est le
+   signal qui dira au superviseur si le problème est ponctuel ou structurel.
+
+### 2 sexies. Lancer la veille sur cadence — chercher les pistes qu'on n'a pas demandées
+
+Les findings du superviseur et les demandes de l'utilisateur ne couvrent qu'un angle :
+ce que la flotte sait déjà d'elle-même. La veille couvre l'autre — **les pratiques
+agentic, agents, skills et playbooks publics que le dispositif ignore encore**. Une
+flotte peut être parfaitement cohérente avec elle-même et en retard de six mois sur
+l'état de l'art. C'est pourquoi la veille n'attend pas une demande : elle a une cadence,
+et c'est l'orchestrateur qui la tient.
+
+**Quand la lancer** (l'un de ces déclencheurs suffit) :
+
+| Déclencheur | Vérification avant de lancer |
+| --- | --- |
+| Le hook SessionStart signale « veille a lancer ou perimee » (> 3 j) | Rien à vérifier — le hook a déjà lu `derniere_veille` |
+| Fin d'un chantier, avant de considérer l'incrément livré | Lire `.claude/veille/veille.json` : si `derniere_veille` < 3 j, **ne pas relancer** — dire qu'elle est fraîche |
+| Avant de créer un agent, une skill ou un playbook maison | Toujours : réécrire ce qui existe en public, mieux maintenu, est une perte sèche |
+| Le superviseur a besoin de l'état de l'art pour prouver un finding | Synchrone dans ce cas (le diagnostic attend le résultat) |
+| L'utilisateur demande des pistes d'amélioration, des évolutions, des bonnes pratiques | Toujours : c'est la demande même de la veille |
+
+**Comment la lancer.** Sous-agent `veille-agentic` (outil `Agent`), qui porte l'outil
+`Skill` et charge la méthode lui-même :
+
+- **En arrière-plan par défaut** (`run_in_background: true`) : une veille lit beaucoup de
+  sources et dure. Elle n'a aucune dépendance avec le chantier courant, donc elle ne doit
+  jamais le bloquer — mais **attendre la notification** avant d'en parler : ne jamais
+  écrire à sa place ce qu'elle « aura trouvé » (règle du mode asynchrone, § 2 ter).
+- **Synchrone** (`run_in_background: false`) uniquement quand le résultat est nécessaire
+  pour continuer — typiquement quand `agent-supervisor` l'appelle pour prouver un écart.
+- **Un seul chantier de veille à la fois.** Deux veilles concurrentes écriraient toutes
+  les deux `veille.json` : écrasement garanti.
+
+**Ce qui suit le retour de la veille**, dans l'ordre — et c'est là que la plupart des
+dispositifs de veille meurent :
+
+1. **Régénérer le wiki** — au HUB, `py scripts/scan_projets.py` (ce script n'est pas
+   déployé : depuis une cible, il n'y a pas de wiki à régénérer) : la section 3 « Veille agentic »
+   affiche les trouvailles et leur statut. Une veille écrite mais non propagée est
+   invisible.
+2. **Présenter les trouvailles à l'utilisateur**, une ligne chacune avec sa
+   `regle_proposee` et son `action_corrective`. Elles arrivent en statut `nouveau` : ce
+   sont des **propositions**, pas des décisions.
+3. **Ne rien adopter de sa propre initiative.** L'adoption est la commande `adopte`
+   (§ 2 quater) — un arbitrage utilisateur, tracé dans `arbitrages.json`. Appliquer une
+   trouvaille sans arbitrage viole R4 aussi sûrement qu'appliquer un finding.
+4. **Surveiller le pourrissement.** Une trouvaille qui reste `nouveau` plus de 7 jours est
+   un signal à remonter : la veille a produit une règle que personne n'a arbitrée, donc
+   payée pour rien. Le superviseur en fait un finding (`cible` = `veille:<slug>`) — la
+   même leçon que les documents de réflexion, dont les propositions ne sont pas
+   arbitrables tant qu'elles ne passent pas par `diagnostic.json`.
+
+### 2 septies. Convoquer une salle — faire délibérer AVANT de planifier
+
+Le hub porte **12 salles** de table ronde (`_bmad/custom/bmad-party-mode.toml`), rendues
+dans l'onglet Dispositif du wiki avec leur casting et leur commande. Jusqu'au 2026-08-31
+l'orchestrateur ne les connaissait pas : sa seule ligne était le renvoi générique
+`bmad-party-mode` de la table BMAD, en régime « proposé ». Résultat mesuré — **aucune
+salle n'était convoquée sur une demande utilisateur** : le mode d'emploi vivait dans le
+générateur du wiki, invisible du plan. C'est la demande utilisateur du 2026-08-31
+(« je n'ai pas l'impression qu'elles soient lancées lors de mes demandes ») qui a ouvert
+cette section.
+
+**Ce qu'une salle est, et n'est pas.** Une salle DÉLIBÈRE : elle rend un compte rendu —
+points tranchés, désaccords restants, et qui-fait-quoi. Elle **ne modifie aucun fichier**,
+ne committe pas, ne décide pas à la place de l'humain. Sa sortie ALIMENTE le plan de
+l'orchestrateur ; elle ne le remplace pas. Une salle qui produirait un diff serait un
+sous-agent mal briefé, pas une table ronde.
+
+**Quand la convoquer — d'office.** Dès que la demande porte sur un **choix à instruire**
+plutôt qu'un travail à exécuter, et qu'une situation ci-dessous matche : convoquer, en
+l'annonçant en une ligne (quelle salle, pourquoi elle). Les marqueurs sont le doute, la
+pluralité d'options, le désaccord ou l'absence de problème bien posé — « je ne sais pas
+par où commencer », « faut-il adopter », « ça ne ressemble à rien », « est-ce prêt »,
+« pourquoi ça coûte », « je n'arrive pas à formuler », « tout le monde est d'accord trop
+vite ». À l'inverse, **ne pas convoquer** quand la demande est une exécution nette
+(« corrige ce bug », « régénère le wiki », « solde les runs ») : une salle y ajouterait un
+tour de parole et zéro information.
+
+**Comment.** `/bmad-party-mode --party <salle> --mode subagent`, en énonçant le sujet
+juste après. Le mode compte : `session` fait jouer toutes les voix par une seule, donc
+**aucun débat réel** — `subagent` donne à chaque persona son propre contexte, et c'est la
+seule façon qu'elles se contredisent. Deux tours au minimum : positions indépendantes,
+puis confrontation. Depuis le wiki, le bouton « Déclencher » (« En débattre » jusqu'au
+2026-09-01) lance exactement la même chose sans terminal.
+
+**Coût.** Une salle en `subagent` = une session par voix, soit 3 à 5 sessions. C'est le
+prix du désaccord réel ; il ne se paie que sur un vrai choix. Une seule salle à la fois.
+
+**Les skills BMAD de la salle vont dans le brief des voix — `skills_bmad`.** Règle posée
+le 2026-09-02, sur demande utilisateur (« 44 sur 46 skills ne sont jamais utilisées,
+raccorde aux salles »). Chaque salle déclare désormais, dans
+`_bmad/custom/bmad-party-mode.toml`, le champ **`skills_bmad`** : les skills que ses voix
+doivent réellement charger via l'outil `Skill`. **Lis-le en même temps que le manifeste**,
+et recopie le nom exact dans le brief de la voix concernée — une voix part avec un contexte
+vierge, elle n'a ni la table de routage ni le TOML.
+
+Deux points que la mesure impose :
+
+- **Seules les 8 skills du régime « d'office » y figurent**, et un test l'exige. Elles étaient
+  13 avant la migration v6.12.0 : la consolidation des cinq lentilles de revue dans
+  `bmad-review` et des trois recherches dans `bmad-deep-recon` en a retiré cinq **sans rien
+  retirer de couvert** — le besoin est le même, il passe par une skill au lieu de trois. Une salle
+  ne modifie aucun fichier : y router une skill qui écrit casserait son invariant, c'est-à-dire
+  la garde de R4 contre une auto-application collective. Les 21 « proposé » restent
+  atteignables par le porteur ou en inline, sur arbitrage.
+- **`resolve_party.py` ne remonte PAS ce champ** — il ne rend qu'un jeu de clés fixe. C'est
+  toi qui lis le TOML, ce que ce paragraphe t'impose déjà pour le manifeste. Patcher le
+  résolveur aurait été plus direct et se serait perdu à la première mise à jour de BMAD.
+
+Et la limite, à ne pas maquiller : ce raccord ne fait pas tomber « 44 » à zéro, et ne le
+doit pas. Il garantit qu'aucune des 13 utilisables n'est ORPHELINE — sans salle qui la
+nomme, donc sans chemin par lequel elle puisse partir. Forcer une skill à s'exécuter pour
+faire baisser un compteur produirait un compteur qui mesure sa propre complaisance.
+
+**Une salle neuve n'entre pas dans le kit publié sur son test de câblage.** Règle posée
+le 2026-09-01 (finding `salles:accueil-projet,conseil-flotte,atelier-deck,mise-en-service`,
+arbitré « rien retirer, poser la règle anti-récidive »). Le dispositif est passé de 9 à
+12 salles pendant que quatre de la première génération n'avaient jamais siégé ailleurs
+que dans leur propre run de création — et la réponse apportée avait été d'en créer trois
+de plus. Convocations mesurées le 2026-09-01 sur les 97 runs : `atelier-idees` 7,
+`atelier-dev` 4, `revue-consommation` 3, `observatoire-agentic` 2 ; `conseil-flotte`,
+`atelier-deck`, `mise-en-service` et `socle-technique` 1 chacune — leur run de création ;
+`accueil-projet`, `code-review-crew`, `inspection-critique` et `anti-consensus-club`
+**zéro**. Une salle se publie donc après une **convocation réelle sur une demande
+utilisateur**, jamais après le test qui prouve qu'elle est atteignable.
+
+Et se garder de la lecture inverse : ces salles ont toutes un déclencheur nommé dans
+`SALLES-ROUTAGE` — `tests/test_salles_routage.py` l'exige déjà de chacune. Le déclencheur
+n'est donc pas ce qui leur manquait, et lui en ajouter un n'aurait rien changé. Ce qui
+manque à une salle jamais convoquée, c'est une demande qui lui ressemble ; si aucune n'est
+venue en un mois, la question est sa raison d'être, pas son câblage. Aucune n'a été mise
+en sommeil le 2026-09-01 : trois des quatre à zéro dataient de la veille, et les juger à
+un jour aurait été ne pas leur laisser leur chance.
+
+<!-- SALLES-ROUTAGE:START — table verrouillée par tests/test_salles_routage.py : toute
+     salle citée ici doit exister dans _bmad/custom/bmad-party-mode.toml, et toute salle
+     du TOML doit être routée ici (sinon elle est inatteignable depuis une demande). -->
+
+| La demande ressemble à… | Salle | Ce qu'elle apporte |
+| --- | --- | --- |
+| « ce bug touche trois couches, par où commencer ? », partition d'un chantier de code, structure d'un code existant à faire évoluer, **choix du langage ou de la pile** la mieux adaptée à la situation | `atelier-dev` | Le Charpentier pose la structure et les frontières AVANT qu'on réparte les fichiers, les trois dev nomment leur périmètre exclusif, le Relecteur dit ce qui bloquera en revue |
+| « on adopte cette pratique ou pas ? », arbitrer un finding, revue périodique du dispositif | `conseil-flotte` | Vigie l'état de l'art, Argus les mesures, Quincaillier l'existant, Garde-fou le coût de maintenance |
+| « ce deck est correct mais ne ressemble à rien », concevoir/contrôler une restitution | `atelier-deck` | Maquettiste la fabrication, Contrôleur le gabarit, Sally le regard de celui qui reçoit |
+| « est-ce prêt à passer en production ? », environnements, secrets, exploitation | `mise-en-service` | Aiguilleur les environnements, Passerelle ce qui sort du poste, Archiviste la doc, Garde-fou les tests |
+| « pourquoi ma consommation a doublé ? », cette dépense a-t-elle acheté quelque chose | `revue-consommation` | Jauge les chiffres, Argus les runs joués, Quincaillier les outils qui tournent pour rien |
+| « un nouveau projet arrive, personne ne le connaît » | `accueil-projet` | Salle open-cast : elle génère les voix du cadrage, sans relais écrit d'avance |
+| « ce code me paraît risqué sans que je sache dire pourquoi » | `code-review-crew` | Cinq angles distincts (sécurité, contradiction, cas limites, artisanat, livrer) qui se disputent |
+| « j'ai une intuition, pas encore une question », refonte, organisation de l'information, navigation, simplification | `atelier-idees` | Le Cadreur pose le problème avant les solutions, Portevoix parle pour l'usager absent, Wildcard ouvre les options, Splinter casse l'accord facile |
+| « il faudrait relire tout ça à froid », inspection périodique, chasse aux fonctionnalités que plus personne n'utilise | `inspection-critique` | Quatre axes tenus séparés — bugs latents, design, expérience de celui qui s'en sert, et ce qui n'est jamais utilisé ; part d'un périmètre et de mesures d'usage, pas d'un diff |
+| « où tournent nos environnements et combien ça coûte ? », **choix de l'environnement de production**, infrastructure, secrets, reprise après incident | `socle-technique` | Le parc décrit avant d'être corrigé, les risques triés par risque et non par facilité ; tient l'infrastructure dans la durée là où la mise en service est un guichet par release |
+| « qu'est-ce qui se fait ailleurs ? », état de l'art agentic, pratiques des fournisseurs IA, littérature scientifique et publications | `observatoire-agentic` | Elle CLASSE ce qu'elle lit — prouvé, sorti, annoncé, hype — et exige la source primaire ; elle ne décide pas d'adopter, elle dit ce que la chose vaut et ce qu'elle coûte à vérifier |
+| « tout le monde est d'accord trop vite et ça me met mal à l'aise » | `anti-consensus-club` | Elle casse le faux consensus, ouvre des options, arrête les boucles à vide |
+
+<!-- SALLES-ROUTAGE:END -->
+
+**Le manifeste de fonctionnement.** Chaque salle porte aussi son protocole — mode et
+nombre de tours, déroulé (qui parle quand), traitement du désaccord, règle d'arrêt, et
+interdits. Même charpente pour les onze, ce qui permet de comparer deux salles et de
+reconnaître celle qui dérive de son propre mode d'emploi. **Le lire avant de convoquer** :
+c'est lui qui dit si le premier tour interdit les solutions (`atelier-idees`), si les voix
+doivent lire séparément avant de se parler (`code-review-crew`), ou si le premier tour est
+un état des lieux et non une proposition (`socle-technique`). Un déroulé non respecté
+produit une salle qui a l'air d'avoir siégé sans avoir délibéré.
+
+**Le contrat de la salle — ses entrants, sa recette.** Depuis le 2026-09-01 chaque
+salle porte, dans le TOML et rendue au wiki, quatre choses que l'orchestrateur doit
+traiter comme des obligations et non comme de la documentation :
+
+1. **Les entrants sont une condition de convocation, pas une suggestion.** Une salle
+   réunie sans la matière qu'elle réclame (le diff exact, l'état réel du code, la spec
+   ou l'ADR touché, les mesures de la période) délibère sur du vide et rend un avis qui
+   a l'air d'un résultat. **Rassembler les entrants AVANT de convoquer** ; s'il en manque
+   un qu'on ne peut pas produire, le dire dans le brief de la salle plutôt que de laisser
+   les voix combler le trou par de la vraisemblance.
+2. **La qualité requise se vérifie sur le compte rendu**, avant de le remonter : c'est
+   le critère écrit par la salle elle-même, donc le seul qu'elle ne puisse pas contester.
+3. **Le sortant nomme un producteur qui n'est jamais la salle.** Elle déclare le livrable
+   (un deck, un plan de partition, un arbitrage, une fiche de cadrage) et QUI le produit
+   — un playbook, un porteur BMAD, l'auteur du diff. Enchaîner sur ce producteur fait
+   partie du plan ; s'arrêter au compte rendu, c'est la dépense sans achat.
+4. **La recette est bloquante.** Chaque salle écrit les points que son livrable aval devra
+   passer. L'orchestrateur **ne clot pas le run** tant qu'ils ne sont pas joués : une
+   recette non vérifiée vaut `partiel`, jamais `succes`. C'est ce qui empêche le contrat
+   d'être décoratif — la salle ne produit rien, mais ce qu'elle exige est opposable.
+
+Le régime a été arbitré le 2026-09-01 : **déclaratif + recette vérifiable**. L'option
+« la salle produit elle-même son livrable » a été écartée parce qu'elle aurait cassé
+l'invariant « ne modifie aucun fichier », c'est-à-dire la garde de R4 contre une
+auto-application collective.
+
+**Après la salle.** Son compte rendu est une ENTRÉE du plan, à traiter comme le résultat
+d'une étape : reprendre la partition proposée en fan-out, garder les désaccords restants
+comme points d'arbitrage utilisateur, et journaliser la salle dans le `plan` du run
+(`agent` = la salle, `mode` = `parallele`). Une salle tenue puis oubliée est une dépense
+sans achat.
+
+**Restituer une salle — la décision d'abord, le débat ensuite.** Une salle délibère pour
+que quelqu'un tranche ; sa restitution est donc un document de DÉCISION, pas un compte
+rendu de séance. Règle posée le 2026-08-31 après que la salle a rejeté sa propre
+restitution (« c'est le vocabulaire de la salle qui vient de se tenir, pas celui de la
+personne qui doit décider ») :
+
+1. **Ouvrir par la question à trancher**, en une phrase, dans les mots de la tâche — pas
+   par le contexte, pas par la méthode, pas par une formule qui suppose d'avoir assisté
+   au débat.
+2. **Les options en regard, avec les mêmes colonnes** : ce qu'on fait · ce que ça coûte ·
+   ce qu'on saura · quand on le saura. Une option sans « ce qu'on saura » n'est pas une
+   option, c'est une préférence.
+3. **Dire ce qu'on recommande, et pourquoi** — une salle qui rend N possibilités
+   équivalentes a sous-traité sa part du travail à celui qui décide.
+4. **Ne jamais laisser la mise en page fabriquer une symétrie** : trois encadrés de même
+   taille disent « trois hypothèses de même poids », et c'est faux dès que l'une porte un
+   test qui la réfuterait et pas les autres. Le poids visuel doit suivre le poids réel.
+5. **Citer chaque voix sans la corriger** : garder les conditions qu'elle a posées. Une
+   option promue en effaçant sa réserve (« je l'abandonne si on veut trancher aujourd'hui »)
+   n'est plus la sienne — c'est une déformation, même flatteuse.
+6. **Les désaccords restants sont le livrable**, pas un reliquat : les nommer, dire ce qui
+   les départagerait, et si c'est mesurable à froid, le mesurer AVANT de restituer (R6).
+7. **Porter une case dédiée « désaccord(s) documenté(s) : qui, quoi — ou aucun et
+   pourquoi »**, distincte de la synthèse du point 3 (veille adoptée 2026-09-08,
+   Deliberative Illusion, arXiv:2606.03032) : une délibération multi-agents peut faire
+   disparaître les faits nuancés au fil des tours (attrition factuelle) et faire
+   converger les postures artificiellement (homogénéisation) sans que le désaccord de
+   fond soit résolu. Une absence TOTALE de désaccord documenté sur un sujet qui a
+   justifié la convocation d'une salle est en soi un signal à interroger, pas une preuve
+   de consensus solide.
+
+Le reste — transcription, ordre des tours, qui a bougé — vient après, pour qui veut
+vérifier. Personne ne décide en lisant un dialogue.
+
+### 3. Valider
+
+Présenter le plan à l'utilisateur **seulement si** : > 3 sous-agents, coût manifestement
+élevé, ou étape irréversible/hors périmètre de la demande. Sinon exécuter directement —
+la demande vaut mandat, la validation systématique tuerait l'usage.
+
+### 4. Exécuter
+
+Après chaque étape, vérifier son **contrat de sortie** (artefact attendu présent, test
+vert, vérification réelle faite). Échec → **une** relance ciblée, puis escalade à
+l'utilisateur avec l'état réel. Vérifications obligatoires à insérer d'office dans les
+plans (leçons payées du projet — mémoires `feedback_*`) :
+
+| Si le plan touche… | Alors le plan contient… |
+| --- | --- |
+| Template/CSS/JS/écran | Rendu réel regardé (screenshot ou app lancée), pas seulement pytest |
+| Génération d'un export PPT | `pptx-verify` (rendu réel — python-pptx est un parseur tolérant) |
+| **Livrable consommé par l'utilisateur** (deck exporté, écran) | Produire l'**artefact EXACT qu'il ouvre** (l'export réel, pas une fonction de démo maison), le rendre **ENTIER** (toutes les slides/pages, pas un extrait), et le faire **VALIDER par l'utilisateur** avant tout « fait » |
+| Fin d'incrément / avant commit | Revue finale en étape terminale (relecture diff + exigences recochées) |
+| Exploration volumineuse | Sous-agent `Explore`, jamais la session principale |
+| Skills BMAD | Le régime de § 2 quinquies : **d'office** seulement si la skill est bornée ET ne rend qu'un rapport ; **annoncé et validé** dès qu'elle coûte cher (PRD, archi, stories, code) **ou qu'elle écrit un fichier réel** (documentation, index, découpage) |
+
+**Règle de non-convergence.** Si le MÊME livrable est rejeté par l'utilisateur **≥ 3
+tours** (« toujours KO », « pas traité »), la boucle ne converge pas : **STOP l'itération
+à l'aveugle** — ne pas re-deviner le défaut. Reproduire l'artefact utilisateur exact
+(§ ligne ci-dessus) ET **demander à l'utilisateur de pointer le défaut précis** (numéro de
+slide/page, capture, écran) avant de retoucher quoi que ce soit. Re-deviner produit
+l'oscillation ; l'oracle, c'est l'utilisateur sur SON artefact.
+
+### 5. Journaliser
+
+À la fin du run (succès **ou** échec), une ligne dans `.claude/orchestration/runs.jsonl` :
+
+```bash
+py .claude/orchestration/log_run.py '{"demande": "résumé court", "qualification": "orchestre", "playbook": "dev-verifie", "plan": [{"etape": "revue design", "agent": "Explore", "mode": "parallele", "modele": "haiku", "etat": "ok"}], "resultat": "succes", "reprises": 0, "notes": ""}'
+```
+
+(JSON aussi accepté sur stdin. Chaque étape du `plan` accepte un champ optionnel `etat`
+(`ok` | `echec` | `non-rendu`) : `log_run.py` refuse un `resultat: succes` si une étape
+porte `etat: echec` ou `etat: non-rendu` — un fan-out dont un sous-agent a échoué ou n'a
+rien rendu ne peut pas être journalisé comme un succès global (motif OrchestraBench,
+arXiv:2608.05263, veille 2026-09-08). Le même contrôle joue au `--solde` (revue de code du
+2026-09-09 : il passait par la porte de derrière) ; un `etat` hors vocabulaire n'est refusé
+que sur `succes`, un `echec` mal étiqueté reste journalisable (R5). `qualification` : `orchestre` | `direct-signale` ;
+`resultat` (issue **discriminante** — pas un `succes` réflexe, un journal où tout est
+`succes` ne porte aucun signal) : `succes` = livrable produit ET toutes les exigences
+explicites de la demande couvertes ET vérifications obligatoires faites **ET, pour un
+livrable consommé par l'utilisateur, validé PAR l'utilisateur sur l'artefact exact** ;
+`en-attente-validation` = livrable produit et auto-vérifié mais **pas encore validé par
+l'utilisateur** — état par défaut d'un livrable utilisateur tant que le « OK » n'est pas
+donné (ne JAMAIS logger `succes` sur une auto-évaluation d'un livrable que l'utilisateur
+doit approuver) ; `partiel` = au moins une exigence non livrée, une vérification
+obligatoire sautée, OU une escalade non résolue à la remise (commit/PR bloqué renvoyé à
+l'utilisateur) ; `echec` = objectif non atteint / run abandonné ; `playbook` : nom du
+playbook instancié ou `null` en composition libre. Les exécutions directes ne se
+journalisent pas — le journal trace les orchestrations, pas la conversation.)
+
+## Politique de modèle (sous-agents uniquement)
+
+La session principale — donc les skills inline — reste sur le modèle choisi par
+l'utilisateur : l'orchestrateur peut **proposer** une bascule (`/model`), jamais l'imposer.
+
+| Modèle | Pour | Exemple |
+| --- | --- | --- |
+| Haiku | Fan-out mécanique : recherches simples, extraction, inventaires | 4 × Explore sur des questions factuelles |
+| Sonnet | Défaut dev : exploration de code, implémentation standard, revue ciblée | general-purpose sur une feature bornée |
+| Opus / Fable | Structurant : architecture, plan complexe, revue adversariale, arbitrage | Plan, revue de conception |
+
+Arbitrage par défaut (décision n°6) : qualité d'abord sur le structurant, économe sur le
+fan-out — le superviseur croisera modèle × tâche × reprises pour ajuster poste par poste.

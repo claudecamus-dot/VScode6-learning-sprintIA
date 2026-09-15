@@ -1,0 +1,100 @@
+{
+  "permissions": {
+    "deny": [
+      "Read(./.env)",
+      "Read(./secrets/**)",
+      "Read(./config/credentials.json)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash|PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "py \"$CLAUDE_PROJECT_DIR/.claude/hooks/guard_destructive_git.py\"",
+            "timeout": 10,
+            "statusMessage": "Garde-fou git destructif..."
+          },
+          {
+            "type": "command",
+            "command": "py \"$CLAUDE_PROJECT_DIR/.claude/hooks/warn_verif_before_commit.py\"",
+            "timeout": 10,
+            "statusMessage": "Verif reelle avant commit..."
+          },
+          {
+            "type": "command",
+            "command": "py \"$CLAUDE_PROJECT_DIR/.claude/hooks/guard_service.py\"",
+            "timeout": 10,
+            "statusMessage": "Sous-agent : aucun service lance, redemarre ou purge..."
+          }
+        ]
+      },
+      {
+        "matcher": "Skill",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "py \"$CLAUDE_PROJECT_DIR/.claude/hooks/guard_salle_skills.py\"",
+            "timeout": 10,
+            "statusMessage": "Convocation de salle : skills BMAD nommees ?"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "py \"$CLAUDE_PROJECT_DIR/.claude/hooks/orchestrator_gate.py\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "py \"$CLAUDE_PROJECT_DIR/.claude/supervision/scan_transcripts.py\"",
+            "timeout": 60,
+            "statusMessage": "Scan supervision (etage 1)..."
+          },
+          {
+            "type": "command",
+            "command": "py \"$CLAUDE_PROJECT_DIR/.claude/hooks/remind_revue_increment.py\"",
+            "timeout": 10,
+            "statusMessage": "Rappel revue-increment..."
+          },
+          {
+            "type": "command",
+            "command": "py \"$CLAUDE_PROJECT_DIR/.claude/hooks/remind_veille_agentic.py\"",
+            "timeout": 10,
+            "statusMessage": "Cadence veille agentic..."
+          },
+          {
+            "type": "command",
+            "command": "py \"$CLAUDE_PROJECT_DIR/.claude/hooks/point_du_jour.py\"",
+            "timeout": 15,
+            "statusMessage": "Ce qui attend votre decision..."
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Skill|Agent|Task",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "py \"$CLAUDE_PROJECT_DIR/.claude/supervision/log_usage.py\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
