@@ -28,6 +28,14 @@ Dernier scan : ? · **0 sessions** (transcripts) · **0** invocations de skills 
 
 `agent-securite`, `agent-supervisor`, `deck-design-library`, `restitution-deck-design`, `revue-increment`, `veille-agentic`
 
+**BMAD** — 29/29 jamais invoqués :
+
+<details><summary>Voir la liste</summary>
+
+`bmad-advanced-elicitation`, `bmad-agent-analyst`, `bmad-agent-architect`, `bmad-agent-dev`, `bmad-agent-pm`, `bmad-agent-ux-designer`, `bmad-architecture`, `bmad-brainstorming`, `bmad-build`, `bmad-build-auto`, `bmad-code-review`, `bmad-correct-course`, `bmad-create-epics-and-stories`, `bmad-customize`, `bmad-deep-recon`, `bmad-forge-idea`, `bmad-help`, `bmad-party-mode`, `bmad-prd`, `bmad-prfaq`, `bmad-product-brief`, `bmad-project-context`, `bmad-qa-generate-e2e-tests`, `bmad-retrospective`, `bmad-review`, `bmad-spec`, `bmad-sprint-planning`, `bmad-ux`, `bmad-walkthrough`
+
+</details>
+
 **global** — 1/2 jamais invoqués :
 
 `skill-creator`
@@ -46,8 +54,9 @@ _Consommés en lisant/exécutant leurs `scripts/`, ou via un sous-agent qui les 
 
 ## TODO agents (constats automatiques)
 
-1. **`revue-increment` jamais invoquée** malgré le rappel SessionStart à chaque session — revoir son déclencheur (l'ancrer au flux de commit ?) ou la simplifier.
-2. **Skills projet sans usage** : `agent-securite`, `agent-supervisor`, `deck-design-library`, `restitution-deck-design`, `veille-agentic` — vérifier pertinence et déclencheurs.
+1. **Trier les skills BMAD** : 29 installés, 0 invocation à ce jour — décider lesquels garder, customiser ou désinstaller.
+2. **`revue-increment` jamais invoquée** malgré le rappel SessionStart à chaque session — revoir son déclencheur (l'ancrer au flux de commit ?) ou la simplifier.
+3. **Skills projet sans usage** : `agent-securite`, `agent-supervisor`, `deck-design-library`, `restitution-deck-design`, `veille-agentic` — vérifier pertinence et déclencheurs.
 
 ## Diagnostic qualitatif (étage 2 — `agent-supervisor`)
 
