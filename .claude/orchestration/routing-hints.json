@@ -1,0 +1,42 @@
+{
+ "generated": "2026-09-15T11:01:51+02:00",
+ "eprouves": [],
+ "jamais_utilises": [
+  "agent-securite",
+  "agent-supervisor",
+  "deck-design-library",
+  "restitution-deck-design",
+  "revue-increment",
+  "skill-creator",
+  "veille-agentic"
+ ],
+ "bibliotheque_reference": [
+  "agent-orchestrator",
+  "pdf-quality",
+  "pptx-deck",
+  "pptx-framed-image",
+  "pptx-verify",
+  "roadmap-keeper",
+  "slide-text-polish"
+ ],
+ "hub_only": [
+  "audit-technique"
+ ],
+ "en_sommeil": [],
+ "verifications_oubliees": [
+  "revue-increment jamais invoquee malgre le rappel SessionStart -> l'inserer d'office en etape terminale des plans de dev"
+ ],
+ "playbooks": {},
+ "agents": {},
+ "prudence": [],
+ "trous_catalogue": [],
+ "diagnostic_a_jour": false,
+ "arbitrages": [],
+ "mesure_incomplete": {
+  "transcripts_absents": 0,
+  "total_fichiers": 0,
+  "dernier_evenement": "",
+  "journal_usage_muet": false
+ },
+ "mesure_non_fiable": false
+}
