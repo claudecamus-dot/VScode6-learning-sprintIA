@@ -1,0 +1,5 @@
+{
+  "watched_prefixes": ["trello_client/", "tests/"],
+  "verif_bash": ["pytest", "-m pytest"],
+  "verif_skill": ["revue-increment"]
+}
