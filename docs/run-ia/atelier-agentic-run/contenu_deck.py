@@ -171,7 +171,8 @@ COMMENT = {
         ("2", "Mettre sous contrôle",
          ["Mise en place du monitoring (observabilité)",
           "Définition des indicateurs SLA et XLA",
-          "Mise en place de l'ASRF"],
+          # Acronyme developpe a la demande du 2026-09-18.
+          "Mise en place de l'ASRF (Agentic Software Run Factory)"],
          False),
         ("3", "Piloter en continu",
          ["Reporting en temps réel et alerting",
@@ -193,6 +194,15 @@ REPORTING = {
     # La phrase forte passe en bandeau de cloture (composant 7) plutot que de
     # rester en sous-titre : c'est elle qu'on veut voir rester.
     "banner": "Deux rythmes, deux publics : l'un pour réagir, l'autre pour décider.",
+    # XLA ajoute le 2026-09-18 : ce qui ALIMENTE le reporting, en regard des
+    # deux rythmes qui le restituent. Occupe la colonne droite, a la place du
+    # panneau photo — le contenu prime sur la decoration.
+    "xla_label": "XLA — TROIS FAMILLES CROISÉES",
+    "xla": [
+        ("Le ressenti", "déclaré par les utilisateurs, recueilli par sondage"),
+        ("Les processus", "délais, respect des SLA, KPI"),
+        ("Les outils", "performance des postes, des applications, du réseau"),
+    ],
     "niveaux": [
         ("TEMPS RÉEL", "Pour le management opérationnel",
          "Alerting inclus : l'écart se voit quand il se produit, pas au bilan.",

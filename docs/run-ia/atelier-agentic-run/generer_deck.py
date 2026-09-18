@@ -524,7 +524,12 @@ def slide_comment(prs):
     w_lab = 1.74
     x_b = L + w_lab + 0.14
     w_b = R - x_b
-    h_pill = 0.34
+    # Cotes resserrees le 2026-09-18 : developper « ASRF (Agentic Software Run
+    # Factory) » elargit sa pastille a 4.44in, qui ne partage plus sa ligne —
+    # la bande 2 passe de 2 a 3 lignes et le total depassait la slide (defaut
+    # attrape par `verifier_geometrie`). La taille du texte, elle, ne bouge
+    # pas : c'est precisement ce qu'on venait d'agrandir.
+    h_pill = 0.31
     gap_p = 0.10
     taille = D.TYPE["small"]
 
@@ -545,9 +550,12 @@ def slide_comment(prs):
             lignes.append(cur)
         bandes.append((num, titre, accent, lignes))
 
-    h_bandes = [0.16 + len(lg) * h_pill + (len(lg) - 1) * 0.08 + 0.16
+    h_bandes = [0.13 + len(lg) * h_pill + (len(lg) - 1) * 0.07 + 0.13
                 for _n, _t, _a, lg in bandes]
-    total = sum(h_bandes) + 0.16 * (len(bandes) - 1)
+    total = sum(h_bandes) + 0.13 * (len(bandes) - 1)
+    if total > B_CONT - T_CONT:
+        raise ValueError("bandes « En pratique » : %.2fin pour %.2fin de bande"
+                         % (total, B_CONT - T_CONT))
     y = T_CONT + max(0.0, (B_CONT - T_CONT - total) / 2)
 
     for (num, titre, accent, lignes), h_b in zip(bandes, h_bandes):
@@ -562,15 +570,15 @@ def slide_comment(prs):
                    [(typo_fr(titre), {"size": D.TYPE["tiny"], "bold": True,
                                       "color": CYAN if accent else MUTED,
                                       "line_spacing": 1.1})])
-        yy = y + 0.16
+        yy = y + 0.13
         for ligne in lignes:
             xx = x_b + 0.18
             for texte, lp in ligne:
                 D.add_chip(slide, xx, yy, lp, h_pill, typo_fr(texte),
                            NAVY if accent else SLATE, size=taille, outline=True)
                 xx += lp + gap_p
-            yy += h_pill + 0.08
-        y += h_b + 0.16
+            yy += h_pill + 0.07
+        y += h_b + 0.13
     return slide
 
 
@@ -642,15 +650,22 @@ def slide_reporting(prs):
     laisse la place a une photo qui aere la slide."""
     d = C.REPORTING
     slide = page(prs, d["titre"], d["claim"])
-    w_ph = 2.55                       # panneau photo, colonne de droite
+    w_ph = 2.72                       # colonne de droite : le bloc XLA
     x_ph = R - w_ph
     wz = x_ph - 0.28 - L              # zone des rangees, a gauche
     w_chip = 1.42
+    w_chev = 0.56                     # gouttiere du chevron de liaison
     # w_txt = largeur INTERIEURE de la carte ; la carte fait w_txt + 0.36.
-    # Oublier ce +0.36 ici faisait passer la carte SOUS le panneau photo —
+    # Oublier ce +0.36 ici faisait passer la carte SOUS le panneau voisin —
     # collision que `verifier_geometrie` ne voit pas (il ne detecte que les
     # sorties de slide, jamais deux formes qui se chevauchent).
-    w_txt = wz - w_chip - 0.62 - 0.36
+    #
+    # La largeur garde une MARGE volontaire : a 2.955in, « Pour le management
+    # operationnel » (31 car.) tombait pile sur la capacite estimee d'une ligne
+    # (31 car.), l'estimateur le donnait sur 1 ligne et LibreOffice le passait
+    # sur 2 — le titre recouvrait alors son propre texte. Un calcul juste a la
+    # limite n'est pas un calcul juste.
+    w_txt = wz - w_chip - w_chev - 0.36
 
     h_t = hbox_max([x[1] for x in d["niveaux"]], w_txt, D.TYPE["h3"])
     h_c = hbox_max([x[2] for x in d["niveaux"]], w_txt, D.TYPE["small"])
@@ -660,8 +675,23 @@ def slide_reporting(prs):
     plafond = B_CONT - hauteur_bandeau(d["banner"], 13.0) - 0.22
     y0 = T_CONT + max(0.0, (plafond - T_CONT - total) / 2)
 
-    photo(slide, x_ph, y0, w_ph, total, "control room monitors data",
-          "mountains", seed=3)
+    # Colonne droite : ce qui ALIMENTE le reporting (XLA), en regard des deux
+    # rythmes qui le restituent. Remplace le panneau photo — le contenu prime.
+    wx = w_ph - 0.40
+    h_x = max(hbox(a + " " + b, wx, D.TYPE["tiny"]) for a, b in d["xla"])
+    carte(slide, x_ph, y0, w_ph, total, accent=True, couleur=CYAN)
+    yx = D.add_card_header(slide, x_ph + 0.20, y0 + 0.18, wx, d["xla_label"],
+                           CYAN, size=D.TYPE["tiny"])
+    for fort, suite in d["xla"]:
+        D.add_forme(slide, "ellipse", x_ph + 0.20,
+                    yx + (lh(D.TYPE["tiny"]) - 0.07) / 2 + 0.02, 0.07, 0.07,
+                    fill=CYAN, line=None)
+        D.add_text_runs(slide, x_ph + 0.42, yx, wx - 0.22, h_x, [([
+            (typo_fr(fort) + " : ", {"size": D.TYPE["tiny"], "bold": True,
+                                     "color": NAVY}),
+            (typo_fr(suite), {"size": D.TYPE["tiny"], "color": SLATE}),
+        ], {"line_spacing": 1.12})])
+        yx += h_x + 0.12
 
     for i, (rythme, public, detail, accent) in enumerate(d["niveaux"]):
         y = y0 + (h + gap) * i
@@ -670,10 +700,10 @@ def slide_reporting(prs):
         D.add_chip(slide, L, y + (h - 0.30) / 2, w_chip, 0.30, rythme, couleur,
                    text_color=NAVY if accent else "#FFFFFF", size=D.TYPE["tiny"])
         # chevron de liaison, en contour : marqueur de flux (composant 3)
-        D.add_forme(slide, "chevron", L + w_chip + 0.14, y + (h - 0.34) / 2,
+        D.add_forme(slide, "chevron", L + w_chip + 0.11, y + (h - 0.34) / 2,
                     0.34, 0.34, fill="#FFFFFF", line=couleur, line_w=1.8,
                     adj=[0.30])
-        xc = L + w_chip + 0.62
+        xc = L + w_chip + w_chev
         carte(slide, xc, y, w_txt + 0.36, h, accent=accent, couleur=couleur)
         D.add_text(slide, xc + 0.18, y + 0.18, w_txt, h_t,
                    [(typo_fr(public), {"size": D.TYPE["h3"], "bold": True,
