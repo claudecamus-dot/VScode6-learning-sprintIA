@@ -1,0 +1,31 @@
+{
+  "arbitrages": [
+    {
+      "cible": "hub:pptx-deck/verifier_geometrie",
+      "titre": "Aucun des quatre filets ne detecte une forme de hauteur ou largeur NEGATIVE, que PowerPoint refuse d'ouvrir",
+      "categories": [
+        "verification-manquante"
+      ],
+      "date": "2026-09-18",
+      "decision": "ACCEPTE + APPLIQUE (commit 3667ca5 hub, garde propagee a VSCode2 app/services/ commit fe77645, propagation au kit de skill des 7 autres depots en cours) : verifier_geometrie() teste desormais w<=0 or h<=0 en plus des bords. 5 tests adversariaux (tests/test_pptx_deck_geometrie.py au hub), rouge confirme avant correctif. Arbitrage ecrit cote hub (arbitrages.json), duplique ici car ce depot lit son PROPRE arbitrages.json pour masquer ses findings locaux."
+    },
+    {
+      "cible": "hub:pptx-deck/add_card_header",
+      "titre": "add_card_header consomme 0.545in sans que sa hauteur soit documentee, ce qui fait deborder la derniere puce des cartes a en-tete",
+      "categories": [
+        "pratique-design"
+      ],
+      "date": "2026-09-18",
+      "decision": "ACCEPTE + APPLIQUE (commit 69b01d0 hub, source + export) : constante H_CARD_HEADER=0.545 nommee, calcul inchange. Test adversarial verifiant le comportement reel, pas seulement la valeur."
+    },
+    {
+      "cible": "hub:pptx-deck/add_chip",
+      "titre": "add_chip(outline=True) ignore silencieusement text_color et rend des pastilles vides si `color` est clair",
+      "categories": [
+        "pratique-design"
+      ],
+      "date": "2026-09-18",
+      "decision": "ACCEPTE + APPLIQUE (commit c3f4eb8 hub, source + export) : text_color=None comme sentinelle, un appelant qui le passe explicitement l'obtient enfin en mode outline. Retro-compatibilite verifiee sur l'appelant reel de CE depot (docs/run-ia/generer_deck.py:905, appelle sans text_color)."
+    }
+  ]
+}
