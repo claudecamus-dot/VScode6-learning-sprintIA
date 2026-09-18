@@ -16,21 +16,21 @@ COUVERTURE = {
 
 # --- Intercalaires : 3 chapitres structurants ---
 CHAPITRES = [
-    ("1", "Le constat", "Pourquoi le RUN coûte si cher, et pourquoi c'est réparable maintenant"),
-    ("2", "L'offre", "Ce que nous vendons, à qui ça se branche, et par quoi on commence"),
-    ("3", "Ce qui la rend défendable", "La preuve, l'apport produit et le terrain agentique"),
-    ("4", "Conclusion", "Comment l'offre se vend, et ce que le client y gagne"),
+    ("1", "Contexte et enjeux clients", "Où le RUN perd la valeur aujourd'hui, et pourquoi c'est réparable maintenant"),
+    ("2", "Enjeux et opportunités OCTO", "Ce que nous savons faire que personne ne fait à notre place"),
+    ("3", "L'offre", "Ce que nous vendons, où ça se branche, et ce que le client y gagne"),
+    ("4", "Next steps", "À qui la vendre, et ce qu'il reste à trancher pour commencer"),
 ]
 
 SOMMAIRE = {
     "titre": "Ce que nous allons couvrir",
-    "claim": "Quatre temps : le problème, l'offre, ce qui la rend défendable, et ce que le client achète.",
+    "claim": "Quatre temps : là où le client perd de la valeur, ce qu'OCTO sait y apporter, l'offre, et ce qu'on enclenche.",
 }
 
 # --- S2 : le problème ---
 CONSTATS = {
-    "titre": "Le RUN, là où la valeur se perd",
-    "claim": "Nos clients paient deux fois : une fois pour construire, une fois pour ne plus comprendre.",
+    "titre": "Où vous perdez de la valeur aujourd'hui",
+    "claim": "Vous payez deux fois : une fois pour construire, une fois pour ne plus comprendre.",
     "cartes": [
         ("1", "Le produit tourne, plus personne ne l'explique",
          "L'équipe de build est partie et les décisions d'architecture ne sont "
@@ -54,7 +54,7 @@ CONSTATS = {
 
 # --- S3 : pourquoi maintenant ---
 RUPTURES = {
-    "titre": "Pourquoi cette offre est possible maintenant",
+    "titre": "Pourquoi c'est réparable maintenant",
     "claim": "Deux ruptures se croisent : l'IA sait enfin lire un patrimoine, et le build agentique en produit plus vite qu'on ne le maîtrise.",
     # Titre = (texte, mention_italique|None) : la mention est posee en run
     # italique DANS la phrase (emphase en ligne), pas en phrase separee.
@@ -71,7 +71,7 @@ RUPTURES = {
           "Le non-déterminisme rend inopérants les réflexes de RUN classiques."],
          True),
     ],
-    "banner": "Nos clients vont accumuler ces produits en 2026. Personne ne leur vend "
+    "banner": "Vous allez accumuler ces produits en 2026. Personne ne vous vend "
               "encore la mise sous contrôle qui va avec.",
 }
 
@@ -131,7 +131,7 @@ SOCLE = {
 
 # --- S9 : l'apport produit (product growth) ---
 PRODUIT = {
-    "titre": "Le RUN n'alimente pas que l'exploitation : il alimente le produit",
+    "titre": "Nous ne réparons pas que l'exploitation : nous alimentons le produit",
     "claim": "Un incident bien instruit est une donnée produit ; aujourd'hui elle se perd entre le support et la roadmap.",
     "boucle": [
         ("Écouter", "Verbatims, tickets et usage regroupés par problème réel"),

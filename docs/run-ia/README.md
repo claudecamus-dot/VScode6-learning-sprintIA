@@ -32,22 +32,59 @@ Vérification au rendu réel (obligatoire, python-pptx est un parseur tolérant)
 | `pptx_deck.py` | copie de la bibliothèque du hub (`.claude/skills/pptx-deck`) |
 | `render/` | PNG du rendu PowerPoint réel, preuve de la dernière vérification |
 
-## Structure — 3 chapitres
+## Structure — 4 chapitres
 
 Un sommaire ouvre le deck ; ses quatre cartes sont générées depuis le MÊME
 tuple `CHAPITRES` que les intercalaires, donc les deux ne peuvent pas diverger.
 
 | # | Chapitre | Slides |
 | --- | --- | --- |
-| 1 | Le constat | le RUN où la valeur se perd (5 constats) · pourquoi c'est possible maintenant |
-| 2 | L'offre | la promesse · où l'offre se branche (TMA/MCO) · le parcours en 3 temps · le RUN Readiness Check |
-| 3 | Ce qui la rend défendable | la preuve · l'apport produit · le terrain agentique |
-| 4 | Conclusion | comment ça se vend · ce que le client achète |
+| 1 | Contexte et enjeux clients | pourquoi c'est possible maintenant · le RUN où la valeur se perd (5 constats) |
+| 2 | Enjeux et opportunités OCTO | la preuve · l'apport produit · le terrain agentique |
+| 3 | L'offre | la promesse · où l'offre se branche (TMA/MCO) · le parcours en 3 temps · le RUN Readiness Check |
+| 4 | Next steps | comment ça se vend · ce que le client achète |
 
-Le chapitre 3 est passé de 5 à 3 slides le 2026-09-17 : `slide_trajectoire` a
-fusionné dans `slide_modules` (les incréments 1/2/3 redisaient la progression
-des modules M1/M2/M3, niveau d'autonomie compris), et « comment ça se vend » a
-rejoint la conclusion, dont elle est le pendant côté OCTO.
+**Trame arbitrée le 2026-09-18**, après une table ronde `atelier-deck`. Elle
+remplace les 4 chapitres précédents (Le constat / L'offre / Ce qui la rend
+défendable / Conclusion).
+
+Le principe est une **structure en miroir** : le temps 1 est le côté client
+(son contexte ET ses douleurs, réunis — ce sont les mêmes faits vus sous deux
+angles), le temps 2 est le nôtre. L'ancien chapitre « ce qui la rend
+défendable » ne disparaît donc pas : il devient le temps OCTO, et c'est là que
+`slide_preuve` trouve son toit — la table ronde avait identifié cette slide
+comme la seule qui réponde à l'objection n°1 d'un DSI face à une offre IA
+(« et si votre IA raconte n'importe quoi ? »).
+
+Le nombre de chapitres reste à **4**, et c'est une contrainte dure, pas un
+hasard : `SCENES` (`generer_deck.py`) mappe exactement 4 numéros de chapitre
+vers leur requête photo, et `SCENES[num]` n'est pas gardé — un 5ᵉ chapitre fait
+planter le générateur par `KeyError` tant qu'une scène neuve n'y est pas
+ajoutée. Le repli procédural hors ligne ne connaît par ailleurs que 6 scènes au
+total.
+
+Le chapitre « ce qui la rend défendable » était déjà passé de 5 à 3 slides le
+2026-09-17 : `slide_trajectoire` a fusionné dans `slide_modules` (les incréments
+1/2/3 redisaient la progression des modules M1/M2/M3, niveau d'autonomie
+compris), et « comment ça se vend » a rejoint la conclusion, dont elle est le
+pendant côté OCTO.
+
+### Points soulevés en salle et NON traités par ce changement
+
+La table ronde du 2026-09-18 a relevé quatre écarts qui survivent à la nouvelle
+trame — ils restent ouverts, aucun n'a été arbitré :
+
+1. **`slide_agentique` revendique une exclusivité non étayée** — son titre dit
+   « Le terrain où nous sommes seuls ». Aucune source du corpus ne soutient une
+   affirmation d'exclusivité concurrentielle.
+2. **La ligne « aucun chiffrage » est déjà franchie par les durées** :
+   `slide_modules` affiche « 2 à 4 semaines », « 3 à 6 mois », « 12 à 24 mois ».
+3. **Chiffres non citables** de `recherche_douleurs_RUN_TMA_offshore.md` : les
+   verbatims Hacker News (que le document qualifie lui-même d'anecdotiques) et
+   le « 83 % / 25 % » sur l'IA dans l'outsourcing (périmètre trop large). Les
+   quatre chiffres solides se citent avec leur limite accolée.
+4. **Trous commerciaux** qu'aucune trame ne comble : pas de référence client,
+   aucun livrable montré, rien pour répondre à « ça me coûte quoi ».
 
 `slide_decisions` (« Ce que je vous demande de trancher ») a été retirée du plan
 le 2026-09-17 sur demande. La fonction et son contenu restent définis : la

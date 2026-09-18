@@ -1018,17 +1018,23 @@ def construire(sortie=SORTIE):
     _init_couleurs(prs)
     D.set_police(D.police_marque(prs) or D.police_theme(prs))
 
+    # Trame arbitree le 2026-09-18 : enjeux du CLIENT (contexte + douleurs) ->
+    # enjeux d'OCTO (ce qui nous rend defendables) -> l'offre -> next steps.
+    # Structure en miroir : le temps 1 est le cote client, le temps 2 le notre.
+    # L'ancien chapitre « ce qui la rend defendable » devient donc le temps
+    # OCTO, il ne disparait pas. `slide_trajectoire` reste fusionnee dans
+    # `slide_modules` (2026-09-17, meme progression 1/2/3).
+    # `slide_conclusion` (synthese) clot desormais l'offre plutot que
+    # « next steps » : ce chapitre ne doit porter que des actions.
+    # `slide_decisions` reactivee le 2026-09-18 (retiree du plan le
+    # 2026-09-17) : c'est le seul contenu du deck qui soit un vrai next step.
     plan = [
         (None, [slide_couverture, slide_sommaire]),
-        (C.CHAPITRES[0], [slide_constats, slide_ruptures]),
-        (C.CHAPITRES[1], [slide_promesse, slide_socle, slide_modules,
-                          slide_readiness]),
-        # Chapitre 3 ramene de 5 a 3 slides (2026-09-17) : `slide_trajectoire`
-        # a fusionne dans `slide_modules` (meme progression 1/2/3) et
-        # « comment ca se vend » a rejoint la conclusion, dont elle est le
-        # pendant cote OCTO.
-        (C.CHAPITRES[2], [slide_preuve, slide_produit, slide_agentique]),
-        (C.CHAPITRES[3], [slide_vente, slide_conclusion]),
+        (C.CHAPITRES[0], [slide_ruptures, slide_constats]),
+        (C.CHAPITRES[1], [slide_preuve, slide_produit, slide_agentique]),
+        (C.CHAPITRES[2], [slide_promesse, slide_socle, slide_modules,
+                          slide_readiness, slide_conclusion]),
+        (C.CHAPITRES[3], [slide_vente, slide_decisions]),
     ]
     for chap, fns in plan:
         if chap:
