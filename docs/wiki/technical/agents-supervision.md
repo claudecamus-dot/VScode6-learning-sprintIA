@@ -8,7 +8,7 @@ generated-by: .claude/supervision/scan_transcripts.py (superviseur d'agents, ét
 > ⚠️ **Page générée automatiquement** (hook SessionStart → `.claude/supervision/scan_transcripts.py`).
 > **Ne pas éditer à la main** — toute modification serait écrasée au prochain scan.
 
-Dernier scan : 2026-09-18T12:11:38+02:00 · **3 sessions** (transcripts) · **7** invocations de skills · **3** lancements de sous-agents.
+Dernier scan : 2026-09-18T16:06:29+02:00 · **3 sessions** (transcripts) · **8** invocations de skills · **3** lancements de sous-agents.
 
 ## Skills — usage réel
 
@@ -17,6 +17,7 @@ Dernier scan : 2026-09-18T12:11:38+02:00 · **3 sessions** (transcripts) · **7*
 | `agent-orchestrator` | projet | 3 | 2026-09-15 | 2026-09-18 |
 | `bmad-review` | BMAD | 3 | 2026-09-18 | 2026-09-18 |
 | `bmad-party-mode` | BMAD | 1 | 2026-09-18 | 2026-09-18 |
+| `deck-design-library` | projet | 1 | 2026-09-18 | 2026-09-18 |
 
 ## Sous-agents
 
@@ -26,9 +27,9 @@ Dernier scan : 2026-09-18T12:11:38+02:00 · **3 sessions** (transcripts) · **7*
 
 ## Jamais utilisés
 
-**projet** — 6/13 jamais invoqués :
+**projet** — 5/13 jamais invoqués :
 
-`agent-securite`, `agent-supervisor`, `deck-design-library`, `restitution-deck-design`, `revue-increment`, `veille-agentic`
+`agent-securite`, `agent-supervisor`, `restitution-deck-design`, `revue-increment`, `veille-agentic`
 
 **BMAD** — 27/29 jamais invoqués :
 
@@ -58,7 +59,7 @@ _Consommés en lisant/exécutant leurs `scripts/`, ou via un sous-agent qui les 
 
 1. **Élaguer les skills BMAD** : 27/29 jamais invoqués — confirmer l'utilité des non-utilisés.
 2. **`revue-increment` jamais invoquée** malgré le rappel SessionStart à chaque session — revoir son déclencheur (l'ancrer au flux de commit ?) ou la simplifier.
-3. **Skills projet sans usage** : `agent-securite`, `agent-supervisor`, `deck-design-library`, `restitution-deck-design`, `veille-agentic` — vérifier pertinence et déclencheurs.
+3. **Skills projet sans usage** : `agent-securite`, `agent-supervisor`, `restitution-deck-design`, `veille-agentic` — vérifier pertinence et déclencheurs.
 
 ## Diagnostic qualitatif (étage 2 — `agent-supervisor`)
 
@@ -72,7 +73,7 @@ _Diagnostic à jour._
 
 ## Seuil de qualification — la mesure
 
-Depuis le 2026-09-15 : **31** demande(s) vue(s) hors commande slash (+ 6 slash), **0** run(s) orchestré(s) journalisé(s) sur la même fenêtre — soit **0 %** des demandes orchestrées.
+Depuis le 2026-09-15 : **47** demande(s) vue(s) hors commande slash (+ 7 slash), **0** run(s) orchestré(s) journalisé(s) sur la même fenêtre — soit **0 %** des demandes orchestrées.
 _Ce chiffre ne dit pas ce qui AURAIT dû être orchestré : le hook compte, il ne juge pas. Il donne le dénominateur qui manquait pour arbitrer le seuil sur données plutôt que sur habitude._
 
 ---

@@ -1,5 +1,5 @@
 {
- "generated": "2026-09-18T12:11:38+02:00",
+ "generated": "2026-09-18T16:06:29+02:00",
  "eprouves": [
   "agent-orchestrator",
   "bmad-review",
@@ -35,13 +35,13 @@
   "bmad-sprint-planning",
   "bmad-ux",
   "bmad-walkthrough",
-  "deck-design-library",
   "restitution-deck-design",
   "revue-increment",
   "skill-creator",
   "synced",
   "veille-agentic"
  ],
+ "contredit_par_skill_doctor": [],
  "bibliotheque_reference": [
   "pdf-quality",
   "pptx-deck",
@@ -66,7 +66,7 @@
  "mesure_incomplete": {
   "transcripts_absents": 0,
   "total_fichiers": 3,
-  "dernier_evenement": "2026-09-18T09:54:17.004Z",
+  "dernier_evenement": "2026-09-18T12:52:55.651Z",
   "journal_usage_muet": false
  },
  "mesure_non_fiable": false

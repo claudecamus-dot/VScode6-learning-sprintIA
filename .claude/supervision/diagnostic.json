@@ -1,0 +1,75 @@
+{
+ "generated": "2026-09-17T17:31:35+02:00",
+ "findings": [
+  {
+   "categorie": "pratique-design",
+   "cible": "hub:deck-design-library/template-octo.md",
+   "titre": "Les slides de chapitre de reference de la flotte sont chez VSCode3 et VSCode4, et la bibliotheque de design ne le dit pas",
+   "preuve": "VScode6 a fabrique ses 3 intercalaires a la main (panneau navy dessine) apres deux echecs sur le layout natif : le texte gabarit « ici mettre une Photo » reste visible au rendu si le cadre teardrop n'est pas rempli, et le numero de chapitre est renvoye a la ligne hors de son encart de 0.55in. Les deux defauts sont deja resolus et commentes dans VSCode3 docs/cadrage-ppt/generate_deck.py::slide_chapitre (numero 17pt + marges a zero + D.sans_puce + ancrage MIDDLE ; cadre rempli par _remplir_cadre avec cache Openverse a nom de repli distinct) et reformules dans VSCode4 scripts/generate_deck_ohc.py::slide_chapitre, qui documente en plus le repositionnement d'un layout 51 pour imiter la geometrie mesuree de VSCode3. deck-design-library/references/template-octo.md ne mentionne les layouts « Chapitre » nulle part : son §5 ne liste que Couverture (8) et Titre seul (5), et son §6 ne parle du cadre photo que pour les layouts « cadre blanc » (15-22).",
+   "recommandation": "Inscrire VSCode3 (docs/cadrage-ppt/generate_deck.py::slide_chapitre) comme implementation de reference des intercalaires de chapitre sur ce template, et VSCode4 (scripts/generate_deck_ohc.py::slide_chapitre) comme la variante a lire quand le layout cible n'est pas le 50.",
+   "proposition": "Ajouter au canon du hub, dans deck-design-library/references/template-octo.md : (1) au §5, une ligne « Intercalaire de chapitre | 2 | 50 - Chapitre [1] | idx0 titre (+ sous-titre en 2e paragraphe) - idx1 numero ; cadre photo teardrop OBLIGATOIRE a remplir » ; (2) un §5bis « Deux pieges du layout Chapitre » portant le numero a 17pt/marges zero/sans-puce/ancrage MIDDLE et le remplissage du cadre teardrop via pptx-framed-image, avec renvoi nominatif aux deux implementations de reference. Puis resynchroniser l'export vers les projets.",
+   "priorite": 3,
+   "vu_le": "2026-09-17"
+  },
+  {
+   "categorie": "pratique-design",
+   "cible": "hub:pptx-deck/add_quote_banner",
+   "titre": "add_quote_banner fait passer la premiere ligne du texte SOUS son guillemet decoratif",
+   "preuve": "Dans .claude/skills/pptx-deck/scripts/pptx_deck.py, add_quote_banner dessine le guillemet a l+0.14 en 24pt (largeur de boite 0.40in, soit jusqu'a ~l+0.54) puis pose la boite de texte a l+0.20 avec une largeur de w-0.40, texte centre. Des que la phrase remplit la premiere ligne, celle-ci demarre avant l+0.54 et chevauche le guillemet. Constat utilisateur du 2026-09-17 sur 5 slides simultanees du deck AGENTIC PRODUCT RUN (7, 12, 13, 14, 17), toutes issues du meme helper. Ni verifier_geometrie (qui ne voit que les sorties de slide) ni verifier_debordements_texte (qui ne voit que le texte hors de SA boite) ne peuvent l'attraper : c'est une collision entre deux formes, cas que le module documente lui-meme comme non couvert.",
+   "recommandation": "Decaler la boite de texte au-dela du guillemet, avec un retrait symetrique pour que le bloc centre reste centre : x = l + retrait, largeur = w - 2*retrait, retrait >= 0.60in a 24pt.",
+   "proposition": "Dans add_quote_banner, remplacer `add_text_runs(slide, l + 0.20, t, w - 0.40, h, ...)` par un retrait parametrable `retrait=0.62` (proportionnel a la taille du guillemet si celle-ci devient un argument) : `add_text_runs(slide, l + retrait, t, w - 2 * retrait, h, ...)`. Ajouter au test du module un cas a phrase longue qui remplit la premiere ligne, et verifier que le debut du texte commence apres le guillemet.",
+   "priorite": 3,
+   "vu_le": "2026-09-17"
+  },
+  {
+   "categorie": "verification-manquante",
+   "cible": "hub:pptx-deck/verifier_geometrie",
+   "titre": "Aucun des quatre filets ne detecte une forme de hauteur ou largeur NEGATIVE, que PowerPoint refuse d'ouvrir",
+   "preuve": "Le 2026-09-17 sur VScode6, un `min(souhaite, B_CONT - y)` non borne a produit une forme de hauteur -0.14in. python-pptx l'a acceptee et a ecrit le .pptx sans erreur ; les quatre filets du module (verifier_geometrie, verifier_debordements_texte, verifier_chrome_gabarit, verifier_plancher_de_dessin) sont tous passes au vert ; PowerPoint a refuse d'ouvrir le fichier (COMException, HRESULT 0x80070570 « fichier endommage et illisible »). Il a fallu bisecter slide par slide pour le localiser. verifier_geometrie compare des bornes (l, t, r, b) : avec h < 0, b < t et la forme est jugee DANS le cadre.",
+   "recommandation": "Ajouter au module un controle de validite des dimensions, en amont des quatre autres : toute forme dont width <= 0 ou height <= 0 est un fichier invalide, pas un defaut de mise en page.",
+   "proposition": "Dans verifier_geometrie, avant le test de bornes : `if shp.width <= 0 or shp.height <= 0: problemes.append(f\"slide {num}: '{shp.name}' dimension non positive (w={w:.2f} h={h:.2f}) — PowerPoint refusera d'ouvrir le fichier\")`. Zero faux positif possible (une dimension nulle ou negative n'a aucun usage legitime) et cela transforme une bisection manuelle en un message immediat.",
+   "priorite": 4,
+   "vu_le": "2026-09-17"
+  },
+  {
+   "categorie": "pratique-design",
+   "cible": "hub:pptx-deck/estimer_lignes",
+   "titre": "La calibration par defaut d'estimer_lignes est ~30 % trop pessimiste pour Outfit, la police du template OCTO de la flotte",
+   "preuve": "Mesure sur un rendu PowerPoint reel du template partage (2026-09-17) : 56 caracteres tiennent sur 3.78in a 10.5pt, soit ~14.8 car./pouce. Les defauts du module sont cpi_ref=11.0 (estimer_lignes) et cpi_pessimiste=10.7 (verifier_debordements_texte), calibres sur une police plus large. Effet mesure sur VScode6 : chaque bloc de texte etait budgete ~40 % trop haut, les cartes sortaient aux trois quarts vides, et le verificateur signalait 28 faux debordements sur un deck correct. Le meme modele de hauteur de ligne (taille*0.017 + 4/72 = 0.234in a 10.5pt) surestime lui aussi : le rendu reel donne ~0.19in interligne 1.1.",
+   "recommandation": "Ne pas changer les defauts (ils servent d'autres gabarits), mais documenter dans la fiche du template la calibration MESUREE pour Outfit, et rappeler dans la skill que ces deux valeurs se re-mesurent sur un rendu reel avant d'etre utilisees sur un nouveau gabarit.",
+   "proposition": "Ajouter a deck-design-library/references/template-octo.md un paragraphe « Calibration typographique mesuree » : Outfit ~14.8 car./pouce a 10.5pt, hauteur de ligne ~0.19in a interligne 1.1 ; passer cpi_ref=14.0 a estimer_lignes et cpi_pessimiste=14.0 a verifier_debordements_texte sur ce gabarit. Et dans SKILL.md de pptx-deck, une ligne : « ces calibrations sont des DEFAUTS, pas des constantes universelles — les re-mesurer sur un rendu reel du gabarit cible ».",
+   "priorite": 3,
+   "vu_le": "2026-09-17"
+  },
+  {
+   "categorie": "pratique-design",
+   "cible": "hub:pptx-deck/add_card_header",
+   "titre": "add_card_header consomme 0.545in sans que sa hauteur soit documentee, ce qui fait deborder la derniere puce des cartes a en-tete",
+   "preuve": "La fonction retourne t + 0.36 + 0.045 + 0.14 = t + 0.545, mais ni sa docstring ni SKILL.md ne donnent ce chiffre : elle annonce seulement « retourne le y ou le contenu peut demarrer ». Un appelant qui dimensionne sa carte AVANT de dessiner l'en-tete doit deviner. Sur VScode6, budgete a 0.32, la derniere puce sortait de sa carte sur QUATRE slides a la fois (2026-09-17). verifier_geometrie ne le voit pas (les formes restent dans la slide) et verifier_debordements_texte non plus (chaque boite contient son texte) : seul le rendu reel l'expose.",
+   "recommandation": "Exposer la hauteur consommee comme une constante du module, pour que l'appelant dimensionne sa carte sans la deviner.",
+   "proposition": "Dans pptx_deck.py : `H_CARD_HEADER = 0.545  # 0.36 (libelle) + 0.045 (filet) + 0.14 (respiration)`, utilisee par add_card_header et citee dans sa docstring et dans SKILL.md.",
+   "priorite": 2,
+   "vu_le": "2026-09-17"
+  },
+  {
+   "categorie": "pratique-design",
+   "cible": "hub:pptx-deck/add_chip",
+   "titre": "add_chip(outline=True) ignore silencieusement text_color et rend des pastilles vides si `color` est clair",
+   "preuve": "En mode outline, la fonction pose `txt = color` et ne lit jamais l'argument text_color, qui reste accepte sans effet. Sur VScode6 (2026-09-17), un appel avec color=\"#FFFFFF\" et text_color=NAVY a produit une bande entiere de pastilles VIDES au rendu (bordure blanche invisible + texte blanc sur fond clair), sans aucune erreur ni signalement d'aucun des quatre filets. Le comportement est documente dans la docstring, mais un parametre accepte et ignore est un piege : rien n'avertit l'appelant.",
+   "recommandation": "Soit honorer text_color quand il est fourni explicitement, soit refuser l'appel plutot que de l'ignorer.",
+   "proposition": "Signature `add_chip(..., text_color=None, ...)` ; en mode outline `txt = text_color or color` ; en mode plein `txt = text_color or '#ffffff'`. Retro-compatible (les appels actuels qui comptent sur txt=color ne passent pas text_color en outline), et un appelant explicite obtient ce qu'il demande.",
+   "priorite": 2,
+   "vu_le": "2026-09-17"
+  },
+  {
+   "categorie": "pratique-design",
+   "cible": "hub:deck-design-library/composant-chevron",
+   "titre": "L'encoche d'un chevron vaut adj x le PLUS PETIT COTE : le catalogue ne le dit pas, et un libelle centre sur le cadre chevauche les biseaux",
+   "preuve": "Le composant transversal 3 de catalogue-transformation-commerciale presente `chevron` comme marqueur de sequence sans dire que sa geometrie OOXML consomme `adj x min(w, h)` a GAUCHE et a DROITE. Au defaut (adj=0.5), un chevron de 1.18 x 0.50in n'offre que 0.68in utiles sur 1.18 — 42 % de la largeur est occupee par les biseaux. Sur VScode6 (2026-09-17), une chaine de 7 chevrons avec le libelle pose dans une boite flottante centree sur le cadre EXTERIEUR faisait chevaucher chaque libelle avec les biseaux ; defaut signale par l'utilisateur, invisible des quatre filets (collision entre deux formes).",
+   "recommandation": "Documenter la geometrie et la regle de pose du libelle dans l'entree du composant chevron.",
+   "proposition": "Ajouter au composant transversal 3 : « l'encoche vaut adj x min(w, h) de CHAQUE cote ; a adj=0.5 elle mange 42 % d'un chevron de 1.18x0.50in. Poser le libelle DANS la forme (text_frame du chevron, marges laterales = encoche, ancrage MIDDLE) et non dans une boite flottante centree sur le cadre exterieur — sinon il chevauche les biseaux. Descendre adj a ~0.20 des que la chaine depasse 5 elements. » Un seul objet dans PowerPoint, en prime.",
+   "priorite": 2,
+   "vu_le": "2026-09-17"
+  }
+ ]
+}
