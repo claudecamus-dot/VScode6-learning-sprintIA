@@ -26,6 +26,24 @@
       ],
       "date": "2026-09-18",
       "decision": "ACCEPTE + APPLIQUE (commit c3f4eb8 hub, source + export) : text_color=None comme sentinelle, un appelant qui le passe explicitement l'obtient enfin en mode outline. Retro-compatibilite verifiee sur l'appelant reel de CE depot (docs/run-ia/generer_deck.py:905, appelle sans text_color)."
+    },
+    {
+      "cible": "hub:pptx-deck/add_quote_banner",
+      "titre": "add_quote_banner fait passer la premiere ligne du texte SOUS son guillemet decoratif",
+      "categories": [
+        "pratique-design"
+      ],
+      "date": "2026-09-18",
+      "decision": "ACCEPTE + APPLIQUE (commit fb098f3 hub, source + export) : nouveau parametre retrait=0.62 (au lieu du 0.20 fige), suivant la proposition du finding. shapes_overlap(bbox1, bbox2) ecrite en meme temps : comble l'angle mort commun a ce finding et a composant-chevron (aucun filtre existant ne voit une collision entre deux formes). 6 tests, retro-compatibilite verifiee flotte-wide."
+    },
+    {
+      "cible": "hub:deck-design-library/composant-chevron",
+      "titre": "L'encoche d'un chevron vaut adj x le PLUS PETIT COTE : le catalogue ne le dit pas, et un libelle centre sur le cadre chevauche les biseaux",
+      "categories": [
+        "pratique-design"
+      ],
+      "date": "2026-09-18",
+      "decision": "ACCEPTE + APPLIQUE PARTIELLEMENT (commit fb098f3 hub) : la formule adj x min(largeur, hauteur) et le pattern de retrait symetrique (meme logique que add_quote_banner) sont documentes dans catalogue-transformation-commerciale.md, avec shapes_overlap() cite comme outil de verification. Le defaut lui-meme est cote APPELANT (VScode6/docs/run-ia/*/generer_deck.py, plusieurs usages reels de chevron) -- documentation plutot que code, le hub ne peut pas corriger un placement de texte qu'il ne pose pas lui-meme."
     }
   ]
 }
