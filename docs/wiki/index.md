@@ -3,7 +3,7 @@
 
 Constats automatiques du superviseur d'agents (usage mesuré dans les transcripts de session) :
 
-- **Trier les skills BMAD** : 29 installés, 0 invocation à ce jour — décider lesquels garder, customiser ou désinstaller.
+- **Élaguer les skills BMAD** : 27/29 jamais invoqués — confirmer l'utilité des non-utilisés.
 - **`revue-increment` jamais invoquée** malgré le rappel SessionStart à chaque session — revoir son déclencheur (l'ancrer au flux de commit ?) ou la simplifier.
 - **Skills projet sans usage** : `agent-securite`, `agent-supervisor`, `deck-design-library`, `restitution-deck-design`, `veille-agentic` — vérifier pertinence et déclencheurs.
 
