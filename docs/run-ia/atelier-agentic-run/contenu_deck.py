@@ -213,7 +213,34 @@ REPORTING = {
     ],
 }
 
-# --- S8 (PROPOSÉE, fusion opportunités OCTO / pitch / next steps) ---
+# --- S8 (PROPOSÉE, 2026-09-18) : ce que l'offre change chez le client ---
+# Chaque ligne « avant » reprend une douleur EXPRIMEE en slide 3 ; chaque
+# ligne « apres » nomme une activite reelle du parcours (slide 7) ou une
+# garantie de la proposition de valeur (slide 6). Rien n'est promis ici qui
+# ne soit deja porte par une autre slide du deck — les formulations, elles,
+# sont proposees et restent a valider.
+TRANSFORMATION = {
+    "titre": "Ce que cela change chez nos clients",
+    "claim": "Chaque douleur exprimée trouve sa réponse dans le dispositif.",
+    "avant": ("AUJOURD'HUI", [
+        ("La valeur du forfait", "se discute, faute de preuve"),
+        ("Le prestataire exécute", "sans jamais challenger"),
+        ("La connaissance part", "avec les équipes qui tournent"),
+        ("L'état réel des applications", "reste un angle mort"),
+        ("La réversibilité", "reste théorique"),
+    ]),
+    "apres": ("AVEC AGENTIC PRODUCT RUN", [
+        ("SLA, XLA et reporting mensuel", "la valeur se mesure"),
+        ("Audits sécurité et qualité", "ce qui ne va pas remonte sans qu'on le demande"),
+        ("Rétrodocumentation", "la connaissance sort des têtes"),
+        ("Readiness Check et monitoring", "l'état est connu, en continu"),
+        ("Base documentaire à jour", "la reprise devient exerçable"),
+    ]),
+    "banner": "Aucune de ces réponses n'est une posture : chacune est une activité "
+              "du parcours.",
+}
+
+# --- S9 (PROPOSÉE, fusion opportunités OCTO / pitch / next steps) ---
 # Le PITCH sort du rang des trois cartes egales (2026-09-18) : il devient un
 # panneau hero pleine largeur, les deux autres volets passent en soutien.
 CLOTURE = {

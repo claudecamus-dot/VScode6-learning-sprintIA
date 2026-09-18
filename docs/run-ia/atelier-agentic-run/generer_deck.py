@@ -716,7 +716,51 @@ def slide_reporting(prs):
 
 
 # --------------------------------------------------------------------------
-# S8 — cloture : 3 blocs (opportunites / pitch / next steps)
+# S8 — ce que ca change chez le client : avant / apres relies par un chevron
+# (deck-design-library / catalogue-transformation-commerciale #12 :
+# « montrer concretement ce qui change »)
+# --------------------------------------------------------------------------
+def slide_transformation(prs):
+    d = C.TRANSFORMATION
+    slide = page(prs, d["titre"], d["claim"])
+    w = 3.85
+    wi = w - 0.60
+    colonnes = [(L, d["avant"], MUTED, "—", False),
+                (R - w, d["apres"], CYAN, "✓", True)]
+    h_i = max(hbox(lead + " " + suite, wi, D.TYPE["tiny"])
+              for _x, (_l, items), _c, _p, _a in colonnes for lead, suite in items)
+    n_i = max(len(items) for _x, (_l, items), _c, _p, _a in colonnes)
+    h = 0.18 + 0.26 + 0.16 + n_i * (h_i + 0.09) - 0.09 + 0.18
+    plafond = B_CONT - hauteur_bandeau(d["banner"], 12.5) - 0.20
+    y = T_CONT + max(0.0, (plafond - T_CONT - h) / 2)
+    if y + h > plafond:
+        raise ValueError("avant/apres : %.2fin pour %.2fin sous le bandeau"
+                         % (h, plafond - T_CONT))
+    for x, (label, items), couleur, puce, accent in colonnes:
+        carte(slide, x, y, w, h, accent=accent, couleur=couleur)
+        D.add_chip(slide, x + 0.20, y + 0.18, 2.70, 0.26, label, couleur,
+                   text_color=NAVY if accent else "#FFFFFF", size=D.TYPE["tiny"])
+        yy = y + 0.60
+        for lead, suite in items:
+            D.add_text(slide, x + 0.20, yy, 0.18, 0.24,
+                       [(puce, {"size": D.TYPE["tiny"], "bold": True,
+                                "color": couleur})])
+            D.add_text_runs(slide, x + 0.40, yy, wi, h_i, [([
+                (typo_fr(lead) + " ", {"size": D.TYPE["tiny"], "bold": True,
+                                       "color": NAVY}),
+                (typo_fr(suite), {"size": D.TYPE["tiny"], "color": SLATE}),
+            ], {"line_spacing": 1.1})])
+            yy += h_i + 0.09
+    # chevron centre dans l'interstice, sans toucher les deux cartes
+    x_ch = L + w + ((R - w) - (L + w) - 0.60) / 2
+    D.add_forme(slide, "chevron", x_ch, y + h / 2 - 0.30, 0.60, 0.60,
+                fill="#FFFFFF", line=CYAN, line_w=2.5)
+    bandeau(slide, y + h, d["banner"], size=12.5)
+    return slide
+
+
+# --------------------------------------------------------------------------
+# S9 — cloture : 3 blocs (opportunites / pitch / next steps)
 # --------------------------------------------------------------------------
 def slide_cloture(prs):
     """Le PITCH en panneau hero pleine largeur (fill navy, emphase en ligne),
@@ -796,7 +840,8 @@ def construire(sortie=SORTIE):
         slide_proposition_valeur,   # 5 · Notre proposition de valeur
         slide_comment,              # 6 · En pratique
         slide_reporting,            # 7 · Reporting
-        slide_cloture,              # 8 · Next steps (+ opportunites, pitch)
+        slide_transformation,       # 8 · Ce que cela change chez nos clients
+        slide_cloture,              # 9 · Next steps (+ opportunites, pitch)
     ]
     for fn in plan:
         fn(prs)

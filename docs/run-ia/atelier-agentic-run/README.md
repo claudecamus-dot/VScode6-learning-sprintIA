@@ -1,7 +1,13 @@
 # Deck ATELIER AGENTIC PRODUCT RUN — cadrage interne
 
-Livrable : `AGENTIC-PRODUCT-RUN-atelier.pptx` (9 slides : 1 couverture + les
-8 slides de la note de cadrage source, dans son ordre et sa numérotation).
+Livrable : `AGENTIC-PRODUCT-RUN-atelier.pptx` (10 slides : 1 couverture + les
+8 slides de la note de cadrage source, dans son ordre, **plus une slide 8
+« Ce que cela change chez nos clients »** ajoutée le 2026-09-18).
+
+Cette slide ajoutée n'invente aucune promesse : chaque ligne « aujourd'hui »
+reprend une douleur exprimée en slide 3, chaque ligne « avec Agentic Product
+Run » nomme une activité réelle du parcours (slide 7) ou une garantie de la
+proposition de valeur (slide 6). Les formulations, elles, sont proposées.
 
 **Ni sommaire, ni intercalaires de chapitre** (arbitrage du 2026-09-18) : le
 deck suit exactement le découpage du PDF, sans slide ajoutée.
