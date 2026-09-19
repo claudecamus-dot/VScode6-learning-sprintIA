@@ -13,6 +13,18 @@ d'office, stats plan-vs-réel par playbook/agent, `prudence` issu du diagnostic 
 `docs/wiki/technical/agents-supervision.md` (tableau de bord humain des mêmes données) et
 `.claude/orchestration/playbooks/` (workflows récurrents — format dans `playbooks/FORMAT.md`).
 
+## Portée sur ce projet
+
+_Rien de propre à ce projet pour l'instant._ Au 2026-09-19, la copie locale de cette
+skill était identique octet pour octet à celle de l'autre cible sans chapitre, et son
+écart au socle du hub ne contenait **que du retard** (sections absentes du socle, et une
+version antérieure de deux passages) — aucune spécialisation locale à préserver. Ce
+chapitre est créé vide pour débloquer la propagation sans y verser du retard.
+
+Ce chapitre n'est **jamais réécrit** par `propager_socle.py` : tout ce qui deviendra
+propre à ce projet (agents maison, canal de vérification, playbooks spécifiques) se
+place ici, et nulle part ailleurs dans le fichier.
+
 ## Méthode — 5 étapes
 
 ### 1. Qualifier (silencieux, jamais mentionné à l'utilisateur si exécution directe)
@@ -680,7 +692,7 @@ un jour aurait été ne pas leur laisser leur chance.
 | « un nouveau projet arrive, personne ne le connaît » | `accueil-projet` | Salle open-cast : elle génère les voix du cadrage, sans relais écrit d'avance |
 | « ce code me paraît risqué sans que je sache dire pourquoi » | `code-review-crew` | Cinq angles distincts (sécurité, contradiction, cas limites, artisanat, livrer) qui se disputent |
 | « j'ai une intuition, pas encore une question », refonte, organisation de l'information, navigation, simplification | `atelier-idees` | Le Cadreur pose le problème avant les solutions, Portevoix parle pour l'usager absent, Wildcard ouvre les options, Splinter casse l'accord facile |
-| « il faudrait relire tout ça à froid », inspection périodique, chasse aux fonctionnalités que plus personne n'utilise | `inspection-critique` | Quatre axes tenus séparés — bugs latents, design, expérience de celui qui s'en sert, et ce qui n'est jamais utilisé ; part d'un périmètre et de mesures d'usage, pas d'un diff |
+| « il faudrait relire tout ça à froid », inspection périodique, chasse aux fonctionnalités que plus personne n'utilise, **revue approfondie d'un texte long publié (cohérence, redondance, formulation)** | `inspection-critique` | Quatre axes tenus séparés — bugs latents, design (un texte long y entre au même titre qu'un écran), expérience de celui qui s'en sert, et ce qui n'est jamais utilisé ; part d'un périmètre et de mesures d'usage, pas d'un diff. « Sonner IA » n'est pas un critère qu'elle instruit — arbitré non mesurable le 2026-09-18, aucune détection fiable et non contournable n'existe |
 | « où tournent nos environnements et combien ça coûte ? », **choix de l'environnement de production**, infrastructure, secrets, reprise après incident | `socle-technique` | Le parc décrit avant d'être corrigé, les risques triés par risque et non par facilité ; tient l'infrastructure dans la durée là où la mise en service est un guichet par release |
 | « qu'est-ce qui se fait ailleurs ? », état de l'art agentic, pratiques des fournisseurs IA, littérature scientifique et publications | `observatoire-agentic` | Elle CLASSE ce qu'elle lit — prouvé, sorti, annoncé, hype — et exige la source primaire ; elle ne décide pas d'adopter, elle dit ce que la chose vaut et ce qu'elle coûte à vérifier |
 | « tout le monde est d'accord trop vite et ça me met mal à l'aise » | `anti-consensus-club` | Elle casse le faux consensus, ouvre des options, arrête les boucles à vide |
@@ -796,7 +808,7 @@ l'oscillation ; l'oracle, c'est l'utilisateur sur SON artefact.
 À la fin du run (succès **ou** échec), une ligne dans `.claude/orchestration/runs.jsonl` :
 
 ```bash
-py .claude/orchestration/log_run.py '{"demande": "résumé court", "qualification": "orchestre", "playbook": "dev-verifie", "plan": [{"etape": "revue design", "agent": "Explore", "mode": "parallele", "modele": "haiku", "etat": "ok"}], "resultat": "succes", "reprises": 0, "notes": ""}'
+py .claude/orchestration/log_run.py '{"demande": "résumé court", "qualification": "orchestre", "playbook": "dev-verifie", "plan": [{"etape": "revue design", "agent": "Explore", "mode": "parallele", "modele": "haiku", "etat": "ok"}], "resultat": "succes", "reprises": 0, "notes": "", "livrable_utilisateur": false, "livrable_utilisateur_motif": "chantier interne, aucun artefact ouvert par un humain"}'
 ```
 
 (JSON aussi accepté sur stdin. Chaque étape du `plan` accepte un champ optionnel `etat`
