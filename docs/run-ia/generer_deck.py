@@ -21,6 +21,13 @@ from pptx.enum.text import MSO_ANCHOR, PP_ALIGN
 from pptx.util import Inches, Pt
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# `pptx_deck` n'est PAS recopie ici : la source est la skill du kit agentic
+# (.claude/skills/pptx-deck/scripts/), comme pour pptx-framed-image plus bas.
+# Trois copies strictement identiques de 1260 lignes coexistaient jusqu'au
+# 2026-09-20 ; tests/test_pptx_deck_non_duplique.py empeche leur retour.
+_RACINE = os.path.abspath(os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), "..", ".."))
+sys.path.insert(0, os.path.join(_RACINE, ".claude", "skills", "pptx-deck", "scripts"))
 import pptx_deck as D  # noqa: E402
 import contenu_deck as C  # noqa: E402
 
