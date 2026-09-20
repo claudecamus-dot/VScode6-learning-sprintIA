@@ -45,14 +45,17 @@ def test_get_board_cards_resolves_labels_custom_fields_and_comments():
                     "name": "Corriger le bug X",
                     "labels": [{"name": "bug"}, {"name": "urgent"}],
                     "customFieldItems": [{"idCustomField": "cf1", "idValue": "opt1"}],
-                }
-            ],
-            "/cards/card1/actions": [
-                {
-                    "id": "action1",
-                    "date": "2026-09-15T10:00:00.000Z",
-                    "data": {"text": "En cours"},
-                    "memberCreator": {"fullName": "Claude Camus"},
+                    # Depuis la correction du N+1 (constat d'audit 11), les
+                    # commentaires arrivent DANS la reponse de board
+                    # (actions=commentCard), plus par une requete par carte.
+                    "actions": [
+                        {
+                            "id": "action1",
+                            "date": "2026-09-15T10:00:00.000Z",
+                            "data": {"text": "En cours"},
+                            "memberCreator": {"fullName": "Claude Camus"},
+                        }
+                    ],
                 }
             ],
         }
@@ -69,6 +72,9 @@ def test_get_board_cards_resolves_labels_custom_fields_and_comments():
     assert len(card.comments) == 1
     assert card.comments[0].text == "En cours"
     assert card.comments[0].author == "Claude Camus"
+    # aucune requete /actions : les commentaires viennent de la requete de board
+    called_paths = [c.args[0] for c in session.get.call_args_list]
+    assert not any("/actions" in p for p in called_paths), called_paths
 
 
 def test_get_board_cards_without_comments_skips_actions_call():
