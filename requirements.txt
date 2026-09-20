@@ -1,4 +1,20 @@
-requests>=2.31
+# Versions EPINGLEES (constats d'audit 4 et 6) : sans epinglage, rien ne fige
+# ce qui est installe et aucune confrontation CVE n'est possible.
+# Valeurs relevees par `py -m pip freeze` sur le poste le 2026-09-20, ou la
+# suite est verte. Toute montee de version se fait suite verte a l'appui.
+requests==2.34.2
+# transitives de requests, epinglees pour que l'install soit reproductible
+certifi==2026.7.22
+charset-normalizer==3.5.1
+idna==3.19
+urllib3==2.8.0
+
+# generation des decks (docs/run-ia)
+python-pptx==1.0.2
+lxml==6.1.1
+pillow==12.2.0
+XlsxWriter==3.2.9
 
 # dev / tests
-pytest>=8.0
+pytest==9.1.1
+pytest-cov==7.1.0

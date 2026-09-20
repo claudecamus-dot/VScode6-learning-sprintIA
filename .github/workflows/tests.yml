@@ -1,0 +1,25 @@
+# Constat d'audit 4 : aucune CI ne rejouait la suite, et rien ne figeait les
+# dependances. Ce workflow fait les deux — install epinglee + suite complete.
+name: tests
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Installer les dependances epinglees
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+      - name: Suite de tests avec couverture
+        # Aucun test n'ouvre de socket ni ne demande de credential Trello :
+        # la session HTTP est doublee (voir tests/).
+        run: python -m pytest tests/ -q --cov=trello_client --cov-report=term-missing
