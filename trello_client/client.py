@@ -54,11 +54,17 @@ class TrelloClient:
             token=os.environ.get("TRELLO_TOKEN", ""),
         )
 
+    def _secrets(self) -> tuple:
+        return (self._auth["key"], self._auth["token"])
+
     def _get(self, path: str, **params):
         response = self._session.get(
             f"{API_BASE}{path}", params={**self._auth, **params}, timeout=30
         )
-        response.raise_for_status()
+        try:
+            response.raise_for_status()
+        except requests.HTTPError as exc:
+            raise _redacted_http_error(exc, self._secrets()) from None
         return response.json()
 
     def get_board_custom_fields(self, board_id: str) -> dict:
@@ -114,6 +120,37 @@ class TrelloClient:
                 )
             )
         return cards
+
+
+REDACTED = "***REDACTED***"
+
+
+def redact_secrets(text: str, secrets) -> str:
+    """Remplace toute occurrence d'un secret par un masque.
+
+    Les secrets courts ou vides sont ignorés : masquer "" remplacerait tout.
+    """
+    for secret in secrets:
+        if secret and len(secret) >= 8:
+            text = text.replace(secret, REDACTED)
+    return text
+
+
+def _redacted_http_error(exc: "requests.HTTPError", secrets) -> "requests.HTTPError":
+    """Reconstruit une HTTPError dont ni le message ni l'URL ne portent de secret.
+
+    `requests` place la clé et le token dans la query string, donc dans
+    `response.url`, que `raise_for_status()` recopie dans le message de
+    l'exception — donc dans les logs, les traces et les remontées d'erreur.
+    """
+    response = getattr(exc, "response", None)
+    if response is not None and getattr(response, "url", None):
+        response.url = redact_secrets(str(response.url), secrets)
+    request = getattr(exc, "request", None)
+    if request is not None and getattr(request, "url", None):
+        request.url = redact_secrets(str(request.url), secrets)
+    message = redact_secrets("".join(str(a) for a in exc.args) or str(exc), secrets)
+    return requests.HTTPError(message, response=response, request=request)
 
 
 def _resolve_custom_field_value(item: dict, field_def: dict) -> str:
