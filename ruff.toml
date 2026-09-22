@@ -1,0 +1,8 @@
+# Config minimale et honnete : regles de base (erreurs evidentes + imports),
+# pas de style force qui casserait tout le depot au premier passage.
+# Exclut _bmad/_bmad-output (fournisseurs tiers, non maintenus ici).
+line-length = 100
+extend-exclude = ["_bmad", "_bmad-output", ".claude/skills"]
+
+[lint]
+select = ["E", "F", "I"]
