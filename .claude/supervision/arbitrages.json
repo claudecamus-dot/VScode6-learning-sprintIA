@@ -44,6 +44,76 @@
       ],
       "date": "2026-09-18",
       "decision": "ACCEPTE + APPLIQUE PARTIELLEMENT (commit fb098f3 hub) : la formule adj x min(largeur, hauteur) et le pattern de retrait symetrique (meme logique que add_quote_banner) sont documentes dans catalogue-transformation-commerciale.md, avec shapes_overlap() cite comme outil de verification. Le defaut lui-meme est cote APPELANT (VScode6/docs/run-ia/*/generer_deck.py, plusieurs usages reels de chevron) -- documentation plutot que code, le hub ne peut pas corriger un placement de texte qu'il ne pose pas lui-meme."
+    },
+    {
+      "cible": "hub:pptx-deck/add_quote_banner",
+      "date": "2026-09-21",
+      "titre": "add_quote_banner fait passer la premiere ligne du texte SOUS son guillemet decoratif",
+      "categories": [
+        "pratique-design"
+      ],
+      "decision": "REFUSE (deja fait, constat) : le parametre retrait=0.62 est deja implemente et utilise dans add_text_runs (l + retrait, w - 2*retrait) avec docstring datee du 2026-09-18 documentant le finding.",
+      "preuve_application": "grep -n 'def add_quote_banner' -A 30 .claude/skills/pptx-deck/scripts/pptx_deck.py : signature ligne 648 avec retrait=0.62, docstring lignes 657-663 citant le finding 2026-09-18, corps ligne 670 utilisant l+retrait / w-2*retrait."
+    },
+    {
+      "cible": "hub:pptx-deck/verifier_geometrie",
+      "date": "2026-09-21",
+      "titre": "verifier_geometrie ne detecte pas les dimensions negatives/nulles (b < t accepte comme DANS le cadre)",
+      "categories": [
+        "verification-manquante"
+      ],
+      "decision": "REFUSE (deja fait, constat) : le test 'if w <= 0 or h <= 0' est present lignes 874-882, avant le test de bornes, avec message explicite.",
+      "preuve_application": "grep -n 'def verifier_geometrie' -A 40 .claude/skills/pptx-deck/scripts/pptx_deck.py : lignes 874-882, check w<=0 or h<=0 ajoute avant le test l<...>W+tol, sans tolerance."
+    },
+    {
+      "cible": "hub:pptx-deck/add_chip",
+      "date": "2026-09-21",
+      "titre": "add_chip(outline=True) ignore silencieusement text_color et rend des pastilles vides si color est clair",
+      "categories": [
+        "pratique-design"
+      ],
+      "decision": "REFUSE (deja fait, constat) : text_color=None par defaut (sentinelle), et 'txt = text_color or color' en mode outline (ligne 579), 'txt = text_color or \"#ffffff\"' en mode plein (ligne 582), avec docstring datee du 2026-09-18 expliquant pourquoi None (pas '#ffffff') etait necessaire.",
+      "preuve_application": "grep -n 'def add_chip' -A 40 .claude/skills/pptx-deck/scripts/pptx_deck.py : signature ligne 557-558 text_color=None, corps lignes 576-582."
+    },
+    {
+      "cible": "hub:pptx-deck/verifier_geometrie",
+      "date": "2026-09-21",
+      "titre": "Aucun des quatre filets ne detecte une forme de hauteur ou largeur NEGATIVE, que PowerPoint refuse d'ouvrir",
+      "categories": [
+        "verification-manquante"
+      ],
+      "decision": "REFUSE (deja fait, constat) : le test 'if w <= 0 or h <= 0' est present lignes 874-882 de verifier_geometrie, avant le test de bornes, avec message explicite ; l'arbitrage precedent portait un titre reformule par erreur et n'a pas ferme ce constat.",
+      "preuve_application": "grep -n 'def verifier_geometrie' -A 40 .claude/skills/pptx-deck/scripts/pptx_deck.py : lignes 874-882, check w<=0 or h<=0 ajoute avant le test l<...>W+tol, sans tolerance."
+    },
+    {
+      "cible": "hub:pptx-deck/add_chip",
+      "date": "2026-09-21",
+      "titre": "add_chip(outline=True) ignore silencieusement text_color et rend des pastilles vides si `color` est clair",
+      "categories": [
+        "pratique-design"
+      ],
+      "decision": "REFUSE (deja fait, constat) : text_color=None par defaut (sentinelle), et 'txt = text_color or color' en mode outline (ligne 579), 'txt = text_color or #ffffff' en mode plein (ligne 582), avec docstring datee du 2026-09-18 expliquant pourquoi None (pas #ffffff) etait necessaire ; l'arbitrage precedent portait un titre sans les backticks et n'a pas ferme ce constat.",
+      "preuve_application": "grep -n 'def add_chip' -A 40 .claude/skills/pptx-deck/scripts/pptx_deck.py : signature ligne 557-558 text_color=None, corps lignes 576-582."
+    },
+    {
+      "cible": "hub:deck-design-library/template-octo.md",
+      "date": "2026-09-22",
+      "titre": "Les slides de chapitre de reference de la flotte sont chez VSCode3 et VSCode4, et la bibliotheque de design ne le dit pas",
+      "categories": [
+        "pratique-design"
+      ],
+      "decision": "ACCEPTE + APPLIQUE (cote hub) : deck-design-library/references/template-octo.md complete avec le layout 50-Chapitre (5), un paragraphe 5bis documentant les 2 pieges (numero 17pt/marges zero/sans-puce/MIDDLE, cadre teardrop a remplir) et le renvoi nominatif aux 2 implementations de reference (VSCode3 generate_deck.py::slide_chapitre, VSCode4 generate_deck_ohc.py::slide_chapitre).",
+      "preuve_application": "commit hub (VScode5-Supervision-projets, .claude/skills/deck-design-library/references/template-octo.md) + export regenere et verifie (--check : 0 derive)"
+    },
+    {
+      "cible": "hub:pptx-deck/estimer_lignes",
+      "date": "2026-09-22",
+      "titre": "La calibration par defaut d'estimer_lignes est ~30 % trop pessimiste pour Outfit, la police du template OCTO de la flotte",
+      "categories": [
+        "pratique-design"
+      ],
+      "decision": "ACCEPTE + APPLIQUE (cote hub, defauts non changes comme recommande) : deck-design-library/references/template-octo.md porte desormais un 4bis 'Calibration typographique mesuree' (Outfit ~14.8 car/pouce a 10.5pt, cpi_ref/cpi_pessimiste=14.0 sur ce gabarit precis). pptx-deck/SKILL.md renvoie explicitement a cette section et rappelle que ces calibrations sont des defauts a re-mesurer, pas des constantes universelles.",
+      "preuve_application": "commit hub (.claude/skills/deck-design-library/references/template-octo.md + .claude/skills/pptx-deck/SKILL.md) + export regenere et verifie (--check : 0 derive)"
     }
   ]
 }

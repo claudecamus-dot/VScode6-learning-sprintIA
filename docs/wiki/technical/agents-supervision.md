@@ -1,5 +1,5 @@
 ---
-updated: 2026-09-18
+updated: 2026-09-23
 generated-by: .claude/supervision/scan_transcripts.py (superviseur d'agents, étage 1)
 ---
 
@@ -8,7 +8,7 @@ generated-by: .claude/supervision/scan_transcripts.py (superviseur d'agents, ét
 > ⚠️ **Page générée automatiquement** (hook SessionStart → `.claude/supervision/scan_transcripts.py`).
 > **Ne pas éditer à la main** — toute modification serait écrasée au prochain scan.
 
-Dernier scan : 2026-09-18T16:06:29+02:00 · **3 sessions** (transcripts) · **8** invocations de skills · **3** lancements de sous-agents.
+Dernier scan : 2026-09-23T09:53:26+02:00 · **3 sessions** (transcripts) · **8** invocations de skills · **3** lancements de sous-agents.
 
 ## Skills — usage réel
 
@@ -61,19 +61,40 @@ _Consommés en lisant/exécutant leurs `scripts/`, ou via un sous-agent qui les 
 2. **`revue-increment` jamais invoquée** malgré le rappel SessionStart à chaque session — revoir son déclencheur (l'ancrer au flux de commit ?) ou la simplifier.
 3. **Skills projet sans usage** : `agent-securite`, `agent-supervisor`, `restitution-deck-design`, `veille-agentic` — vérifier pertinence et déclencheurs.
 
+## Arbitrages enregistrés
+
+_Constats clos par décision humaine (`.claude/supervision/arbitrages.json`) — l'usage réel reste mesuré ci-dessus._
+
+- **`hub:pptx-deck/verifier_geometrie`** (2026-09-18) : ACCEPTE + APPLIQUE (commit 3667ca5 hub, garde propagee a VSCode2 app/services/ commit fe77645, propagation au kit de skill des 7 autres depots en cours) : verifier_geometrie() teste desormais w<=0 or h<=0 en plus des bords. 5 tests adversariaux (tests/test_pptx_deck_geometrie.py au hub), rouge confirme avant correctif. Arbitrage ecrit cote hub (arbitrages.json), duplique ici car ce depot lit son PROPRE arbitrages.json pour masquer ses findings locaux.
+- **`hub:pptx-deck/add_card_header`** (2026-09-18) : ACCEPTE + APPLIQUE (commit 69b01d0 hub, source + export) : constante H_CARD_HEADER=0.545 nommee, calcul inchange. Test adversarial verifiant le comportement reel, pas seulement la valeur.
+- **`hub:pptx-deck/add_chip`** (2026-09-18) : ACCEPTE + APPLIQUE (commit c3f4eb8 hub, source + export) : text_color=None comme sentinelle, un appelant qui le passe explicitement l'obtient enfin en mode outline. Retro-compatibilite verifiee sur l'appelant reel de CE depot (docs/run-ia/generer_deck.py:905, appelle sans text_color).
+- **`hub:pptx-deck/add_quote_banner`** (2026-09-18) : ACCEPTE + APPLIQUE (commit fb098f3 hub, source + export) : nouveau parametre retrait=0.62 (au lieu du 0.20 fige), suivant la proposition du finding. shapes_overlap(bbox1, bbox2) ecrite en meme temps : comble l'angle mort commun a ce finding et a composant-chevron (aucun filtre existant ne voit une collision entre deux formes). 6 tests, retro-compatibilite verifiee flotte-wide.
+- **`hub:deck-design-library/composant-chevron`** (2026-09-18) : ACCEPTE + APPLIQUE PARTIELLEMENT (commit fb098f3 hub) : la formule adj x min(largeur, hauteur) et le pattern de retrait symetrique (meme logique que add_quote_banner) sont documentes dans catalogue-transformation-commerciale.md, avec shapes_overlap() cite comme outil de verification. Le defaut lui-meme est cote APPELANT (VScode6/docs/run-ia/*/generer_deck.py, plusieurs usages reels de chevron) -- documentation plutot que code, le hub ne peut pas corriger un placement de texte qu'il ne pose pas lui-meme.
+- **`hub:pptx-deck/add_quote_banner`** (2026-09-21) : REFUSE (deja fait, constat) : le parametre retrait=0.62 est deja implemente et utilise dans add_text_runs (l + retrait, w - 2*retrait) avec docstring datee du 2026-09-18 documentant le finding.
+- **`hub:pptx-deck/verifier_geometrie`** (2026-09-21) : REFUSE (deja fait, constat) : le test 'if w <= 0 or h <= 0' est present lignes 874-882, avant le test de bornes, avec message explicite.
+- **`hub:pptx-deck/add_chip`** (2026-09-21) : REFUSE (deja fait, constat) : text_color=None par defaut (sentinelle), et 'txt = text_color or color' en mode outline (ligne 579), 'txt = text_color or "#ffffff"' en mode plein (ligne 582), avec docstring datee du 2026-09-18 expliquant pourquoi None (pas '#ffffff') etait necessaire.
+- **`hub:pptx-deck/verifier_geometrie`** (2026-09-21) : REFUSE (deja fait, constat) : le test 'if w <= 0 or h <= 0' est present lignes 874-882 de verifier_geometrie, avant le test de bornes, avec message explicite ; l'arbitrage precedent portait un titre reformule par erreur et n'a pas ferme ce constat.
+- **`hub:pptx-deck/add_chip`** (2026-09-21) : REFUSE (deja fait, constat) : text_color=None par defaut (sentinelle), et 'txt = text_color or color' en mode outline (ligne 579), 'txt = text_color or #ffffff' en mode plein (ligne 582), avec docstring datee du 2026-09-18 expliquant pourquoi None (pas #ffffff) etait necessaire ; l'arbitrage precedent portait un titre sans les backticks et n'a pas ferme ce constat.
+- **`hub:deck-design-library/template-octo.md`** (2026-09-22) : ACCEPTE + APPLIQUE (cote hub) : deck-design-library/references/template-octo.md complete avec le layout 50-Chapitre (5), un paragraphe 5bis documentant les 2 pieges (numero 17pt/marges zero/sans-puce/MIDDLE, cadre teardrop a remplir) et le renvoi nominatif aux 2 implementations de reference (VSCode3 generate_deck.py::slide_chapitre, VSCode4 generate_deck_ohc.py::slide_chapitre).
+- **`hub:pptx-deck/estimer_lignes`** (2026-09-22) : ACCEPTE + APPLIQUE (cote hub, defauts non changes comme recommande) : deck-design-library/references/template-octo.md porte desormais un 4bis 'Calibration typographique mesuree' (Outfit ~14.8 car/pouce a 10.5pt, cpi_ref/cpi_pessimiste=14.0 sur ce gabarit precis). pptx-deck/SKILL.md renvoie explicitement a cette section et rappelle que ces calibrations sont des defauts a re-mesurer, pas des constantes universelles.
+
 ## Diagnostic qualitatif (étage 2 — `agent-supervisor`)
 
-_Diagnostic à jour._
+_Diagnostic à jour — rien à signaler, tous les constats précédents ont été arbitrés._
 
-1. **Aucun des quatre filets ne detecte une forme de hauteur ou largeur NEGATIVE, que PowerPoint refuse d'ouvrir** — Ajouter au module un controle de validite des dimensions, en amont des quatre autres : toute forme dont width <= 0 ou height <= 0 est un fichier invalide, pas un defaut de mise en page. · **Proposition** : Dans verifier_geometrie, avant le test de bornes : `if shp.width <= 0 or shp.height <= 0: problemes.append(f"slide {num}: '{shp.name}' dimension non positive (w={w:.2f} h={h:.2f}) — PowerPoint refusera d'ouvrir le fichier")`. Zero faux positif possible (une dimension nulle ou negative n'a aucun usage legitime) et cela transforme une bisection manuelle en un message immediat.
-2. **Les slides de chapitre de reference de la flotte sont chez VSCode3 et VSCode4, et la bibliotheque de design ne le dit pas** — Inscrire VSCode3 (docs/cadrage-ppt/generate_deck.py::slide_chapitre) comme implementation de reference des intercalaires de chapitre sur ce template, et VSCode4 (scripts/generate_deck_ohc.py::slide_chapitre) comme la variante a lire quand le layout cible n'est pas le 50. · **Proposition** : Ajouter au canon du hub, dans deck-design-library/references/template-octo.md : (1) au §5, une ligne « Intercalaire de chapitre | 2 | 50 - Chapitre [1] | idx0 titre (+ sous-titre en 2e paragraphe) - idx1 numero ; cadre photo teardrop OBLIGATOIRE a remplir » ; (2) un §5bis « Deux pieges du layout Chapitre » portant le numero a 17pt/marges zero/sans-puce/ancrage MIDDLE et le remplissage du cadre teardrop via pptx-framed-image, avec renvoi nominatif aux deux implementations de reference. Puis resynchroniser l'export vers les projets.
-3. **add_quote_banner fait passer la premiere ligne du texte SOUS son guillemet decoratif** — Decaler la boite de texte au-dela du guillemet, avec un retrait symetrique pour que le bloc centre reste centre : x = l + retrait, largeur = w - 2*retrait, retrait >= 0.60in a 24pt. · **Proposition** : Dans add_quote_banner, remplacer `add_text_runs(slide, l + 0.20, t, w - 0.40, h, ...)` par un retrait parametrable `retrait=0.62` (proportionnel a la taille du guillemet si celle-ci devient un argument) : `add_text_runs(slide, l + retrait, t, w - 2 * retrait, h, ...)`. Ajouter au test du module un cas a phrase longue qui remplit la premiere ligne, et verifier que le debut du texte commence apres le guillemet.
-4. **La calibration par defaut d'estimer_lignes est ~30 % trop pessimiste pour Outfit, la police du template OCTO de la flotte** — Ne pas changer les defauts (ils servent d'autres gabarits), mais documenter dans la fiche du template la calibration MESUREE pour Outfit, et rappeler dans la skill que ces deux valeurs se re-mesurent sur un rendu reel avant d'etre utilisees sur un nouveau gabarit. · **Proposition** : Ajouter a deck-design-library/references/template-octo.md un paragraphe « Calibration typographique mesuree » : Outfit ~14.8 car./pouce a 10.5pt, hauteur de ligne ~0.19in a interligne 1.1 ; passer cpi_ref=14.0 a estimer_lignes et cpi_pessimiste=14.0 a verifier_debordements_texte sur ce gabarit. Et dans SKILL.md de pptx-deck, une ligne : « ces calibrations sont des DEFAUTS, pas des constantes universelles — les re-mesurer sur un rendu reel du gabarit cible ».
-5. **add_card_header consomme 0.545in sans que sa hauteur soit documentee, ce qui fait deborder la derniere puce des cartes a en-tete** — Exposer la hauteur consommee comme une constante du module, pour que l'appelant dimensionne sa carte sans la deviner. · **Proposition** : Dans pptx_deck.py : `H_CARD_HEADER = 0.545  # 0.36 (libelle) + 0.045 (filet) + 0.14 (respiration)`, utilisee par add_card_header et citee dans sa docstring et dans SKILL.md.
+_7 constat(s) de ce diagnostic écarté(s) par un arbitrage — pour en rouvrir un, demander au superviseur un `re_challenge` avec des données nouvelles :_
+
+- ~~Les slides de chapitre de reference de la flotte sont chez VSCode3 et VSCode4, et la bibliotheque de design ne le dit pas~~ (`hub:deck-design-library/template-octo.md`)
+- ~~add_quote_banner fait passer la premiere ligne du texte SOUS son guillemet decoratif~~ (`hub:pptx-deck/add_quote_banner`)
+- ~~Aucun des quatre filets ne detecte une forme de hauteur ou largeur NEGATIVE, que PowerPoint refuse d'ouvrir~~ (`hub:pptx-deck/verifier_geometrie`)
+- ~~La calibration par defaut d'estimer_lignes est ~30 % trop pessimiste pour Outfit, la police du template OCTO de la flotte~~ (`hub:pptx-deck/estimer_lignes`)
+- ~~add_card_header consomme 0.545in sans que sa hauteur soit documentee, ce qui fait deborder la derniere puce des cartes a en-tete~~ (`hub:pptx-deck/add_card_header`)
+- ~~add_chip(outline=True) ignore silencieusement text_color et rend des pastilles vides si `color` est clair~~ (`hub:pptx-deck/add_chip`)
+- ~~L'encoche d'un chevron vaut adj x le PLUS PETIT COTE : le catalogue ne le dit pas, et un libelle centre sur le cadre chevauche les biseaux~~ (`hub:deck-design-library/composant-chevron`)
 
 ## Seuil de qualification — la mesure
 
-Depuis le 2026-09-15 : **47** demande(s) vue(s) hors commande slash (+ 7 slash), **0** run(s) orchestré(s) journalisé(s) sur la même fenêtre — soit **0 %** des demandes orchestrées.
+Depuis le 2026-09-15 : **48** demande(s) vue(s) hors commande slash (+ 7 slash), **0** run(s) orchestré(s) journalisé(s) sur la même fenêtre — soit **0 %** des demandes orchestrées.
 _Ce chiffre ne dit pas ce qui AURAIT dû être orchestré : le hook compte, il ne juge pas. Il donne le dénominateur qui manquait pour arbitrer le seuil sur données plutôt que sur habitude._
 
 ---
