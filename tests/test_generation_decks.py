@@ -24,7 +24,12 @@ import sys
 import pytest
 
 RACINE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-TEMPLATE = r"C:\Users\claude.camus\Documents\VSCode2\app\assets\template-octo.pptx"
+#: Meme repli configurable que les generateurs (constat d'audit 5) : le test
+#: doit voir le meme template qu'eux, TEMPLATE_OCTO_PATH y compris.
+TEMPLATE = os.environ.get(
+    "TEMPLATE_OCTO_PATH",
+    r"C:\Users\claude.camus\Documents\VSCode2\app\assets\template-octo.pptx",
+)
 GENERATEURS = {
     "offre": os.path.join(RACINE, "docs", "run-ia", "generer_deck.py"),
     "atelier": os.path.join(

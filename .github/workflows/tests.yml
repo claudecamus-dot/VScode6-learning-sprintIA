@@ -22,4 +22,10 @@ jobs:
       - name: Suite de tests avec couverture
         # Aucun test n'ouvre de socket ni ne demande de credential Trello :
         # la session HTTP est doublee (voir tests/).
-        run: python -m pytest tests/ -q --cov=trello_client --cov-report=term-missing
+        # --cov etendu a docs/run-ia (constat d'audit 8) : avant, seul
+        # trello_client etait mesure alors que les generateurs pesent ~2/3
+        # du code applicatif. Sur cette CI ubuntu le gabarit OCTO est absent
+        # (chemin hors depot, constat d'audit 7), donc test_generation_decks
+        # est SAUTE et ce module reste a 0% mesure explicitement au lieu
+        # d'etre absent du rapport : le trou reste visible plutot que tu.
+        run: python -m pytest tests/ -q --cov=trello_client --cov="docs/run-ia" --cov-report=term-missing

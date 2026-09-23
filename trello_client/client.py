@@ -92,20 +92,37 @@ class TrelloClient:
                 time.sleep(_delai_retry(response, attente))
                 attente *= 2
                 continue
-            return response.json()
+            try:
+                return response.json()
+            except ValueError as exc:
+                brut = response.text[:200] if response.text else "<corps vide>"
+                raise TrelloSchemaError(
+                    "reponse Trello 200 non-JSON sur %s : %s (corps tronque : %r)"
+                    % (path, exc, brut)
+                ) from exc
         raise derniere  # pragma: no cover - inatteignable, la boucle sort avant
 
     def get_board_custom_fields(self, board_id: str) -> dict:
-        """Définitions des custom fields d'un board : id -> {name, options}."""
+        """Définitions des custom fields d'un board : id -> {name, options}.
+
+        `_champ` fait échouer bruyamment (TrelloSchemaError) sur un id de champ
+        absent : sans id, le champ est inexploitable pour résoudre les cartes.
+        Le libellé et les options d'une option individuelle, eux, retombent
+        sur un repli sûr (constat d'audit 1) : Trello peut faire évoluer la
+        forme d'une option sans que ça invalide le champ dans son ensemble.
+        """
         fields = self._get(f"/boards/{board_id}/customFields")
         result = {}
         for f in fields:
-            options = {
-                opt["id"]: opt["value"]["text"]
-                for opt in f.get("options", [])
-                if "value" in opt
-            }
-            result[f["id"]] = {"name": f["name"], "options": options}
+            field_id = _champ(f, "id", "custom field du board", board_id)
+            options = {}
+            for opt in f.get("options", []):
+                opt_id = opt.get("id")
+                valeur = opt.get("value")
+                if opt_id is None or not isinstance(valeur, dict):
+                    continue
+                options[opt_id] = valeur.get("text", "")
+            result[field_id] = {"name": f.get("name", field_id), "options": options}
         return result
 
     def get_card_comments(self, card_id: str) -> list:
@@ -166,6 +183,11 @@ class TrelloClient:
         }
         if with_comments:
             params["actions"] = "commentCard"
+            # Sans nActions, Trello plafonne silencieusement le nombre de
+            # commentaires retournes par carte (constat d'audit 2) : 1000
+            # couvre tout historique realiste de carte sans requete
+            # supplementaire (get_card_comments reste dispo pour l'exhaustif).
+            params["nActions"] = "1000"
         before = None
         while True:
             page_params = dict(params)

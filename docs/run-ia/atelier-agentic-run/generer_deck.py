@@ -8,6 +8,7 @@ pas une modification de l'offre existante.
 
 Usage : python generer_deck.py [chemin_sortie.pptx]
 """
+import logging
 import os
 import re
 import sys
@@ -27,7 +28,14 @@ sys.path.insert(0, os.path.join(_RACINE, ".claude", "skills", "pptx-deck", "scri
 import pptx_deck as D  # noqa: E402
 import contenu_deck as C  # noqa: E402
 
-TEMPLATE = r"C:\Users\claude.camus\Documents\VSCode2\app\assets\template-octo.pptx"
+#: Chemin du gabarit OCTO. Configurable via TEMPLATE_OCTO_PATH (constat
+#: d'audit 5) : le repli ci-dessous n'est valide que sur les postes qui ont
+#: VSCode2 a cote de ce depot, ce qui n'est vrai ni en CI ni chez qui que ce
+#: soit d'autre.
+TEMPLATE = os.environ.get(
+    "TEMPLATE_OCTO_PATH",
+    r"C:\Users\claude.camus\Documents\VSCode2\app\assets\template-octo.pptx",
+)
 SORTIE = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                       "AGENTIC-PRODUCT-RUN-atelier.pptx")
 
@@ -221,7 +229,14 @@ def photo(slide, x, y, w, h, requete, repli, seed=0):
             cover_crop_to_aspect(brut, chemin, aspect)
             print("  photo Openverse CC0 : %r" % requete)
         except Exception as e:
-            print("  Openverse indisponible (%s) — repli procedural %r" % (e, repli))
+            # Le repli reste intentionnel (offline-first) mais l'echec doit
+            # etre VISIBLE (constat d'audit 4) : type d'exception + message
+            # actionnable dans les logs, pas seulement un print perdu dans la
+            # sortie du build.
+            logging.getLogger(__name__).warning(
+                "Openverse indisponible (%s: %s), repli procedural %r utilise a la place",
+                type(e).__name__, e, repli, exc_info=True,
+            )
             nature_images.generate_to(chemin_repli, repli, px_w, px_h, seed=seed)
             a_poser = chemin_repli
     elif os.path.exists(chemin_repli):
@@ -873,5 +888,6 @@ def construire(sortie=SORTIE):
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
     out = sys.argv[1] if len(sys.argv) > 1 else SORTIE
     construire(out)
