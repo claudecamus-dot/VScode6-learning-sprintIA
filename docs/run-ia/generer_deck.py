@@ -28,6 +28,18 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 # 2026-09-20 ; tests/test_pptx_deck_non_duplique.py empeche leur retour.
 _RACINE = os.path.abspath(os.path.join(
     os.path.dirname(os.path.abspath(__file__)), "..", ".."))
+def _exiger_skill_du_kit(nom_skill, module):
+    """Dependance DECLAREE au kit agentic (constat d'audit, 2026-09-23) : sans la
+    skill, echouer en la nommant au lieu d'un ImportError anonyme. Le contrat des
+    fonctions utilisees est verrouille par tests/test_contrat_kit_pptx.py."""
+    chemin = os.path.join(_RACINE, ".claude", "skills", nom_skill, "scripts", module + ".py")
+    if not os.path.isfile(chemin):
+        raise SystemExit(
+            "skill %s absente (%s) : ce generateur depend du kit agentic du hub "
+            "(py export/install_agentic.py <ce depot> depuis VScode5)." % (nom_skill, chemin))
+
+
+_exiger_skill_du_kit("pptx-deck", "pptx_deck")
 sys.path.insert(0, os.path.join(_RACINE, ".claude", "skills", "pptx-deck", "scripts"))
 import pptx_deck as D  # noqa: E402
 import contenu_deck as C  # noqa: E402
@@ -38,7 +50,10 @@ import contenu_deck as C  # noqa: E402
 #: soit d'autre.
 TEMPLATE = os.environ.get(
     "TEMPLATE_OCTO_PATH",
-    r"C:\Users\claude.camus\Documents\VSCode2\app\assets\template-octo.pptx",
+    # Repli RELATIF (depot frere VSCode2), plus un chemin de poste : la CI le
+    # telecharge depuis le depot public VSCode2 et pose TEMPLATE_OCTO_PATH
+    # (.github/workflows/tests.yml) ; constat d'audit 7, 2026-09-23.
+    os.path.join(_RACINE, "..", "VSCode2", "app", "assets", "template-octo.pptx"),
 )
 SORTIE = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                       "AGENTIC-PRODUCT-RUN-offre-octo.pptx")

@@ -28,7 +28,10 @@ RACINE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 #: doit voir le meme template qu'eux, TEMPLATE_OCTO_PATH y compris.
 TEMPLATE = os.environ.get(
     "TEMPLATE_OCTO_PATH",
-    r"C:\Users\claude.camus\Documents\VSCode2\app\assets\template-octo.pptx",
+    # Repli RELATIF (depot frere VSCode2), plus un chemin de poste : la CI le
+    # telecharge depuis le depot public VSCode2 et pose TEMPLATE_OCTO_PATH
+    # (.github/workflows/tests.yml) ; constat d'audit 7, 2026-09-23.
+    os.path.join(RACINE, "..", "VSCode2", "app", "assets", "template-octo.pptx"),
 )
 GENERATEURS = {
     "offre": os.path.join(RACINE, "docs", "run-ia", "generer_deck.py"),
