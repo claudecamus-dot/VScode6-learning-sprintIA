@@ -239,8 +239,10 @@ def photo(slide, x, y, w, h, requete, repli, seed=0):
             )
             nature_images.generate_to(chemin_repli, repli, px_w, px_h, seed=seed)
             a_poser = chemin_repli
-    elif os.path.exists(chemin_repli):
-        a_poser = chemin_repli
+    # Si la vraie photo est deja en cache (chemin existe), elle prime
+    # toujours sur un _repli.jpg laisse par un echec reseau anterieur :
+    # le repli ne sert que quand aucune photo reelle n'est disponible
+    # (constat d'audit du hub, reaudit 2026-09-23).
     place_image_in_frame(slide, a_poser, Inches(x), Inches(y), Inches(w),
                          Inches(h), round2diag_geom())
     return True
