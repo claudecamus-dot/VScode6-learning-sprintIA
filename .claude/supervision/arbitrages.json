@@ -114,6 +114,17 @@
       ],
       "decision": "ACCEPTE + APPLIQUE (cote hub, defauts non changes comme recommande) : deck-design-library/references/template-octo.md porte desormais un 4bis 'Calibration typographique mesuree' (Outfit ~14.8 car/pouce a 10.5pt, cpi_ref/cpi_pessimiste=14.0 sur ce gabarit precis). pptx-deck/SKILL.md renvoie explicitement a cette section et rappelle que ces calibrations sont des defauts a re-mesurer, pas des constantes universelles.",
       "preuve_application": "commit hub (.claude/skills/deck-design-library/references/template-octo.md + .claude/skills/pptx-deck/SKILL.md) + export regenere et verifie (--check : 0 derive)"
+    },
+    {
+      "cible": "VScode6:ci-jamais-executee-actions-desactive-compte",
+      "date": "2026-09-24",
+      "titre": "La CI de ce depot n a JAMAIS tourne : GitHub Actions est desactive pour le compte claudecamus-dot — un push vert ici ne prouve pas la CI",
+      "categories": [
+        "verification-manquante"
+      ],
+      "decision": "DIFFERE — report assume sur demande utilisateur du 2026-09-24 : blocage hors depot (GitHub, HTTP 422, ticket support reinstatement du 2026-09-24). La consigne reste valable pour toute session : rejouer la suite en LOCAL et le dire. ROUVRIR au premier run Actions (total_count > 0, conclusion success), arbitrage de cloture citant l URL du run",
+      "preuve_application": "gh api repos/claudecamus-dot/VScode6-learning-sprintIA/actions/runs --jq .total_count -> 0 ; dispatch -> HTTP 422 ; curl profil anonyme -> 404 (revérifié 2026-09-24 ~11h30)",
+      "sans_commit": "aucun code a modifier : blocage externe, decision de report"
     }
   ]
 }
