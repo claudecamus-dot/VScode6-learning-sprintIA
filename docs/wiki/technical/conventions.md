@@ -17,21 +17,23 @@ Vérifié le 2026-09-24 : le test unique ci-dessus passe seul (`1 passed in 0.37
 ## Linter
 
 `ruff.toml` (racine) déclare `select = ["E", "F", "I"]`, `line-length = 100`, et
-exclut `_bmad`, `_bmad-output`, `.claude/skills` (fournisseurs tiers non
-maintenus ici) — source : `ruff.toml`.
+exclut `_bmad`, `_bmad-output`, `.claude` (fournisseurs tiers / copies
+synchronisées du canon du hub de supervision VScode5, bannière « GÉNÉRÉ — NE
+PAS ÉDITER LOCALEMENT » : leur qualité se corrige au hub, pas ici) — source :
+`ruff.toml`.
 
 Commande : `ruff check .`
 
-État réel vérifié le 2026-09-24 : **la commande échoue actuellement**, 79
-erreurs sur l'ensemble du dépôt (66 `E501`, 13 `E741`) après correctif ciblé
-`ruff check . --select I001,F401 --fix` (9 erreurs mécaniques corrigées —
-imports non triés et imports inutilisés — sur les 88 initiales, aucune
-correction de masse sur E501/E741). Suite de tests rejouée après le fix :
-45 passed. Plafonnée par `tests/test_lint_baseline.py` (modèle
-`VsCode4/tests/test_lint_baseline.py`) : toute hausse barre, toute baisse doit
-abaisser la baseline. Ne pas présenter `ruff check .` comme une commande verte
-tant que ces occurrences ne sont pas corrigées — c'est un écart réel, pas une
-convention.
+État réel vérifié le 2026-09-24 : **la commande passe** — `All checks passed!`,
+0 erreur. Historique : 88 erreurs initiales, ramenées à 79 par un correctif
+mécanique ciblé (`ruff check . --select I001,F401 --fix`, imports non triés et
+imports inutilisés), puis les 66 `E501`/13 `E741` restantes soldées le même
+jour à la main (jamais de reformatage global) — sauf celles portées par
+`.claude` (copies canon), sorties du périmètre lint plutôt que corrigées
+localement, une correction locale y étant écrasée à la prochaine propagation.
+Suite de tests rejouée après le fix : 45 passed. Plafonnée par
+`tests/test_lint_baseline.py` (modèle `VsCode4/tests/test_lint_baseline.py`,
+baseline désormais vide) : toute régression barre.
 
 ## Dépendances épinglées
 

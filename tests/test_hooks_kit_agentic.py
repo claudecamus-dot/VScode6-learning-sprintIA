@@ -77,7 +77,7 @@ def test_titre_de_veille_hostile_ne_peut_pas_injecter_une_ligne(monkeypatch, cap
     monkeypatch.setattr(point_du_jour, "trouvailles_en_attente", lambda: (1, 5))
 
     point_du_jour.main()
-    lignes = [l for l in capsys.readouterr().out.splitlines() if l.strip()]
+    lignes = [ligne for ligne in capsys.readouterr().out.splitlines() if ligne.strip()]
 
     # Une seule ligne de contenu s'ajoute au titre : la charge n'a pas pu
     # fabriquer une ligne autonome.
@@ -86,7 +86,7 @@ def test_titre_de_veille_hostile_ne_peut_pas_injecter_une_ligne(monkeypatch, cap
         assert "\t" not in ligne
         assert all(c.isprintable() for c in ligne), repr(ligne)
     assert not any(
-        l.startswith("Point du jour : rien n'attend") for l in lignes[1:]), lignes
+        ligne.startswith("Point du jour : rien n'attend") for ligne in lignes[1:]), lignes
 
 
 # --------------------------------------------------------------------------
@@ -169,7 +169,7 @@ def test_point_du_jour_fail_open_sur_mesure_qui_plante(monkeypatch, capsys):
     assert "mesure impossible" in sortie
     # Le message d'exception passe lui aussi par la neutralisation.
     assert "\t" not in sortie
-    assert len([l for l in sortie.splitlines() if l.strip()]) == 2, sortie
+    assert len([ligne for ligne in sortie.splitlines() if ligne.strip()]) == 2, sortie
 
 
 if __name__ == "__main__":

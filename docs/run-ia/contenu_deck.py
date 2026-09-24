@@ -16,15 +16,24 @@ COUVERTURE = {
 
 # --- Intercalaires : 3 chapitres structurants ---
 CHAPITRES = [
-    ("1", "Contexte et enjeux clients", "Où le RUN perd la valeur aujourd'hui, et pourquoi c'est réparable maintenant"),
-    ("2", "Enjeux et opportunités OCTO", "Ce que nous savons faire que personne ne fait à notre place"),
+    (
+        "1", "Contexte et enjeux clients",
+        "Où le RUN perd la valeur aujourd'hui, et pourquoi c'est réparable maintenant",
+    ),
+    (
+        "2", "Enjeux et opportunités OCTO",
+        "Ce que nous savons faire que personne ne fait à notre place",
+    ),
     ("3", "L'offre", "Ce que nous vendons, où ça se branche, et ce que le client y gagne"),
     ("4", "Next steps", "À qui la vendre, et ce qu'il reste à trancher pour commencer"),
 ]
 
 SOMMAIRE = {
     "titre": "Ce que nous allons couvrir",
-    "claim": "Quatre temps : là où le client perd de la valeur, ce qu'OCTO sait y apporter, l'offre, et ce qu'on enclenche.",
+    "claim": (
+        "Quatre temps : là où le client perd de la valeur, ce qu'OCTO sait y apporter, "
+        "l'offre, et ce qu'on enclenche."
+    ),
 }
 
 # --- S2 : le problème ---
@@ -55,7 +64,10 @@ CONSTATS = {
 # --- S3 : pourquoi maintenant ---
 RUPTURES = {
     "titre": "Pourquoi c'est réparable maintenant",
-    "claim": "Deux ruptures se croisent : l'IA sait enfin lire un patrimoine, et le build agentique en produit plus vite qu'on ne le maîtrise.",
+    "claim": (
+        "Deux ruptures se croisent : l'IA sait enfin lire un patrimoine, et le build "
+        "agentique en produit plus vite qu'on ne le maîtrise."
+    ),
     # Titre = (texte, mention_italique|None) : la mention est posee en run
     # italique DANS la phrase (emphase en ligne), pas en phrase separee.
     "colonnes": [
@@ -78,7 +90,10 @@ RUPTURES = {
 # --- S4 : la promesse ---
 PROMESSE = {
     "titre": "La promesse : des signaux dispersés, des actions traçables",
-    "claim": "Une seule chaîne, du signal émis par le système à l'adoption mesurée chez l'utilisateur.",
+    "claim": (
+        "Une seule chaîne, du signal émis par le système à l'adoption mesurée "
+        "chez l'utilisateur."
+    ),
     "chaine": ["Signal", "Compréhension", "Décision", "Action", "Validation",
                "Apprentissage", "Adoption"],
     "entrees": ("CE QUI ENTRE", [
@@ -102,7 +117,10 @@ PROMESSE = {
 # --- S5 : positionnement par rapport a la TMA et au MCO ---
 SOCLE = {
     "titre": "Où Agentic Product Run se branche : sur la TMA et le MCO",
-    "claim": "Nous ne remplaçons pas le contrat existant — nous rendons enfin tenables les engagements qu'il porte déjà.",
+    "claim": (
+        "Nous ne remplaçons pas le contrat existant — nous rendons enfin tenables "
+        "les engagements qu'il porte déjà."
+    ),
     "colonnes": ("CE QUE LA TMA ET LE MCO ENGAGENT DÉJÀ",
                  "CE QU'AGENTIC PRODUCT RUN CHANGE"),
     "lignes": [
@@ -132,7 +150,10 @@ SOCLE = {
 # --- S9 : l'apport produit (product growth) ---
 PRODUIT = {
     "titre": "Nous ne réparons pas que l'exploitation : nous alimentons le produit",
-    "claim": "Un incident bien instruit est une donnée produit ; aujourd'hui elle se perd entre le support et la roadmap.",
+    "claim": (
+        "Un incident bien instruit est une donnée produit ; aujourd'hui elle se perd "
+        "entre le support et la roadmap."
+    ),
     "boucle": [
         ("Écouter", "Verbatims, tickets et usage regroupés par problème réel"),
         ("Arbitrer", "Fréquence et impact mesurés, dette priorisée par son coût"),
@@ -146,7 +167,10 @@ PRODUIT = {
 # --- S6 : l'offre ---
 MODULES = {
     "titre": "Le parcours en trois temps",
-    "claim": "Une porte d'entrée courte et bornée, puis deux prolongements que le client déclenche s'il a vu la valeur.",
+    "claim": (
+        "Une porte d'entrée courte et bornée, puis deux prolongements que le client "
+        "déclenche s'il a vu la valeur."
+    ),
     # Chaque temps porte son niveau d'autonomie : la slide « trajectoire »
     # separee racontait la meme progression une seconde fois (fusion 2026-09-17).
     "etapes": [
@@ -177,7 +201,10 @@ MODULES = {
 # --- S6 : la porte d'entrée ---
 READINESS = {
     "titre": "La porte d'entrée : le RUN Readiness Check",
-    "claim": "Dix questions auxquelles presque aucun de nos clients ne sait répondre sur son propre produit.",
+    "claim": (
+        "Dix questions auxquelles presque aucun de nos clients ne sait répondre "
+        "sur son propre produit."
+    ),
     "domaines": [
         ("Architecture", "Composants et flux critiques identifiés ?"),
         ("Ownership", "Chaque composant a-t-il un propriétaire ?"),
@@ -203,7 +230,10 @@ READINESS = {
 # --- S7 : le différenciateur ---
 PREUVE = {
     "titre": "Ce qui nous distingue : la preuve, pas la fluidité",
-    "claim": "Une documentation élégante et fausse coûte plus cher que pas de documentation du tout.",
+    "claim": (
+        "Une documentation élégante et fausse coûte plus cher que pas de "
+        "documentation du tout."
+    ),
     "avant": ("SANS CETTE EXIGENCE", [
         ("Une réponse plausible", "que personne ne peut vérifier"),
         ("Une documentation lisse", "dont on ignore la date et la source"),
@@ -217,13 +247,17 @@ PREUVE = {
         ("Chaque recommandation nomme", "sa confiance et son valideur"),
     ]),
     "banner": "Le service Billing semble responsable du calcul des remises — confiance 82 %, "
-              "sur six appels d'API et trois tests ; une page Confluence plus ancienne dit le contraire.",
+              "sur six appels d'API et trois tests ; une page Confluence plus ancienne dit le "
+              "contraire.",
 }
 
 # --- S8 : agentique ---
 AGENTIQUE = {
     "titre": "Le terrain où nous sommes seuls : les produits agentiques",
-    "claim": "Ce que nos clients construisent en 2026 avec des agents, ils devront l'exploiter en 2027.",
+    "claim": (
+        "Ce que nos clients construisent en 2026 avec des agents, ils devront "
+        "l'exploiter en 2027."
+    ),
     # Pastilles courtes plutot que puces : la bande se lit d'un coup d'oeil et
     # le format tranche avec les cartes en colonnes du reste du deck.
     "bandes": [
@@ -246,7 +280,10 @@ AGENTIQUE = {
 # --- S10 : vendabilité ---
 VENTE = {
     "titre": "Comment cette offre se vend",
-    "claim": "Une offre ne tient que si l'on sait à qui l'adresser, sur quel événement, et avec qui la délivrer.",
+    "claim": (
+        "Une offre ne tient que si l'on sait à qui l'adresser, sur quel événement, "
+        "et avec qui la délivrer."
+    ),
     "blocs": [
         ("À QUI", [
             "DSI et CTO au patrimoine applicatif chargé",
@@ -274,7 +311,10 @@ VENTE = {
 # --- S11 : la demande ---
 DECISIONS = {
     "titre": "Ce que je vous demande de trancher aujourd'hui",
-    "claim": "Trois décisions suffisent à savoir si Agentic Product Run devient une offre ou reste une note.",
+    "claim": (
+        "Trois décisions suffisent à savoir si Agentic Product Run devient une offre "
+        "ou reste une note."
+    ),
     "cartes": [
         ("1", "L'offre est-elle vendable en l'état ?",
          "Le RUN Readiness Check tient-il comme porte d'entrée face à un acheteur, "
@@ -293,7 +333,10 @@ DECISIONS = {
 # --- S16 : conclusion ---
 CONCLUSION = {
     "titre": "Ce que le client achète, en trois arguments",
-    "claim": "Si vous ne deviez retenir que trois phrases pour ouvrir la conversation, ce sont celles-ci.",
+    "claim": (
+        "Si vous ne deviez retenir que trois phrases pour ouvrir la conversation, "
+        "ce sont celles-ci."
+    ),
     "arguments": [
         ("1", "Il reprend la main sur un produit qu'il ne comprend plus",
          "Cartographie sur le code réel, zones inconnues nommées.",

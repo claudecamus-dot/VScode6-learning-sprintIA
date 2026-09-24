@@ -507,7 +507,8 @@ def ligne_plans_non_arbitres(repertoire=None):
     nom, age = orphelins[0]
     reste = f" (+{len(orphelins) - 1} autre(s))" if len(orphelins) > 1 else ""
     return _ascii(
-        f"{len(orphelins)} plan(s) de docs/wiki/technical attendent un arbitrage : {nom}, {age} j{reste}"
+        f"{len(orphelins)} plan(s) de docs/wiki/technical attendent un arbitrage : "
+        f"{nom}, {age} j{reste}"
         " -- hors du canal de decision, un plan n'est jamais applique. Le reverser"
         " en finding(s) : py .claude/supervision/write_diagnostic.py --fusionner"
         )

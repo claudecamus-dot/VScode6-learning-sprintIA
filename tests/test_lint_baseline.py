@@ -5,8 +5,18 @@ E741, 7 I001, 2 F401 — `py -m ruff check . --statistics`). Correctif appliqué
 `ruff check . --select I001,F401 --fix` (9 erreurs corrigées, purement
 mécanique — tri d'imports et imports inutilisés, aucune correction de masse
 sur E501/E741 qui demanderait de la relecture). Nouveau total mesuré :
-**79 erreurs**. Ce test fige ce chiffre en plafond, comme sur VsCode4 : toute
-hausse barre, toute baisse doit être inscrite ici.
+79 erreurs (66 E501, 13 E741).
+
+Correctif du même jour, en deux temps : les 66 E501/13 E741 portées par
+`.claude` (`scan_transcripts.py`, `log_run.py` et d'autres) sont des COPIES
+SYNCHRONISÉES du canon du hub de supervision VScode5 (bannière « GÉNÉRÉ — NE
+PAS ÉDITER LOCALEMENT ») — corrigées localement une première fois par erreur,
+puis REVERTÉES et sorties du périmètre lint via `extend-exclude = [".claude"]`
+dans `ruff.toml` : leur qualité se corrige au hub, une correction locale
+serait écrasée à la prochaine propagation. Les erreurs restantes (docs/,
+tests/) ont été coupées à la main (jamais de reformatage global). Total
+mesuré après correctif : **0 erreur**. Ce test fige ce chiffre en plafond,
+comme sur VsCode4 : toute hausse barre, toute baisse doit être inscrite ici.
 """
 import json
 import os
@@ -17,16 +27,10 @@ import pytest
 
 RACINE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-# Mesuré le 2026-09-24 par `_mesurer` ci-dessous, juste après le --fix ciblé
-# I001/F401 (commit "qualite : ruff --fix I001/F401, plafond de lint").
-_BASELINE = {
-    (".claude", "E501"): 48,
-    (".claude", "E741"): 8,
-    ("docs", "E501"): 16,
-    ("docs", "E741"): 2,
-    ("tests", "E501"): 2,
-    ("tests", "E741"): 3,
-}
+# Mesuré le 2026-09-24 par `_mesurer` ci-dessous, après correction manuelle des
+# E501/E741 de docs/ et tests/, et sortie de `.claude` du périmètre lint
+# (copies canon du hub — cf. docstring du module).
+_BASELINE = {}
 
 
 def _zone(chemin_relatif):
@@ -101,7 +105,9 @@ class TestBaselineRuff:
         assert not neuves, (
             f"règles ruff neuves, absentes de la baseline : {neuves}")
 
-    def test_la_baseline_n_est_pas_vide(self):
-        """Contre-garde : une baseline vidée par accident rendrait les trois
-        tests ci-dessus verts par construction sur un dépôt sans ruff utile."""
-        assert _BASELINE and sum(_BASELINE.values()) == 79
+    def test_la_baseline_est_a_zero(self, mesure):
+        """Contre-garde : la baseline est désormais vide par construction (0
+        erreur soldée) — ce test la fait échouer si `mesure` retrouve un point
+        que `test_aucune_regle_neuve` n'aurait pas détecté."""
+        assert _BASELINE == {}
+        assert mesure == {}

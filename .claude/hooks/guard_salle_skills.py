@@ -36,9 +36,9 @@ depuis n'importe quel sous-répertoire de la cible. Ce hook est dans le kit publ
 le 2026-09-02 (arbitrage utilisateur tracé à `hooks:guard_salle_skills` dans
 `arbitrages.json` ; la revue de commit du même jour avait relevé qu'il n'y était pas alors
 que son docstring l'affirmait). « Dans le kit » n'est pas « chez les cibles » : la
-propagation vers VSCode..VSCode4 est en standby, arbitrée le même jour. `AGENT_SUPERVISION_PARTY_TOML`
-permet de le rediriger — même convention que les autres journaux du dispositif, et c'est
-ce qui le rend testable sans toucher au réel.
+propagation vers VSCode..VSCode4 est en standby, arbitrée le même jour.
+`AGENT_SUPERVISION_PARTY_TOML` permet de le rediriger — même convention que les autres
+journaux du dispositif, et c'est ce qui le rend testable sans toucher au réel.
 
 LA PORTE DE SORTIE EXISTE DANS LE CODE, pas seulement dans le message (revue du
 2026-09-02 : le refus prescrivait d'écrire « aucune skill BMAD sur ce tour, parce que… »,

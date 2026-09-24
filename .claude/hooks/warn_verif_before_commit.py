@@ -480,7 +480,10 @@ def _session_signals(transcript_path, verif_bash=None, verif_skill=None, disposi
                             sig["verif"] = True
                         if skill in _DOD_SKILL:
                             sig["dod"] = True
-                if sig["verif"] and sig["dod"] and sig["journal"] and (not dispositif_tests or sig["dispositif"]):
+                if (
+                    sig["verif"] and sig["dod"] and sig["journal"]
+                    and (not dispositif_tests or sig["dispositif"])
+                ):
                     return sig
     except Exception:
         return {"verif": False, "dod": False, "journal": False, "dispositif": False}
@@ -652,7 +655,8 @@ def _diff_ajoute(cwd, commit_flags) -> str:
     if r.returncode != 0 or r.stdout is None:
         return ""
     return chr(10).join(
-        l for l in r.stdout.splitlines() if l.startswith("+") and not l.startswith("+++")
+        line for line in r.stdout.splitlines()
+        if line.startswith("+") and not line.startswith("+++")
     )
 
 
@@ -703,7 +707,7 @@ def _sites_nus(cwd, forme_nue: str, prefixes) -> list[str]:
         return []
     if r.returncode not in (0, 1) or not r.stdout:
         return []
-    return [l for l in r.stdout.splitlines() if l.strip()]
+    return [line for line in r.stdout.splitlines() if line.strip()]
 
 
 def _freres_nus(cwd, diff_ajoute: str, fichiers_du_commit, prefixes) -> list[tuple]:

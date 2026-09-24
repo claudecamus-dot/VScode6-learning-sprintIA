@@ -261,7 +261,8 @@ def _remplir_cadre(slide, cadre, scene, requete, repli, seed=0):
             # actionnable dans les logs, pas seulement un print perdu dans la
             # sortie du build.
             logging.getLogger(__name__).warning(
-                "[chapitre %s] Openverse indisponible (%s: %s), repli procedural %r utilise a la place",
+                "[chapitre %s] Openverse indisponible (%s: %s), "
+                "repli procedural %r utilise a la place",
                 scene, type(e).__name__, e, repli, exc_info=True,
             )
             nature_images.generate_to(path_repli, repli, px_w, px_h, seed=seed)
@@ -635,8 +636,8 @@ def slide_socle(prs):
         D.add_text(slide, x + 0.14, y_en + 0.07, w_col - 0.28, h_en,
                    [(lab, {"size": D.TYPE["tiny"], "bold": True, "color": col})])
 
-    textes_a = [l[1] for l in d["lignes"]]
-    textes_b = [l[2] for l in d["lignes"]]
+    textes_a = [ligne[1] for ligne in d["lignes"]]
+    textes_b = [ligne[2] for ligne in d["lignes"]]
     h_cell = max(hbox_max(textes_a, w_col - 0.28, D.TYPE["small"]),
                  hbox_max(textes_b, w_col - 0.28, D.TYPE["small"]))
     n_lig = len(d["lignes"])

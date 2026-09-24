@@ -40,6 +40,8 @@ def test_http_error_message_never_contains_secret_via_args_or_response_url():
     client = TrelloClient(api_key=FAKE_KEY, token=FAKE_TOKEN, session=_session_returning(429))
     with pytest.raises(requests.HTTPError) as excinfo:
         client.get_board_custom_fields("board123")
-    blob = repr(excinfo.value.args) + str(getattr(excinfo.value, "response", None) and excinfo.value.response.url)
+    blob = repr(excinfo.value.args) + str(
+        getattr(excinfo.value, "response", None) and excinfo.value.response.url
+    )
     assert FAKE_KEY not in blob, blob
     assert FAKE_TOKEN not in blob, blob

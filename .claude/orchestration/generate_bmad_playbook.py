@@ -21,8 +21,13 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-CSV_PATH = Path(os.environ.get("BMAD_HELP_CSV") or ROOT / "_bmad" / "_config" / "bmad-help.csv")
-OUT_PATH = Path(os.environ.get("PLAYBOOK_OUT") or Path(__file__).parent / "playbooks" / "cycle-produit-bmad.md")
+CSV_PATH = Path(
+    os.environ.get("BMAD_HELP_CSV") or ROOT / "_bmad" / "_config" / "bmad-help.csv"
+)
+OUT_PATH = Path(
+    os.environ.get("PLAYBOOK_OUT")
+    or Path(__file__).parent / "playbooks" / "cycle-produit-bmad.md"
+)
 
 MODULE = "BMad Method"
 EXTRAS = {"bmad-code-review"}
@@ -37,8 +42,12 @@ PHASE_RANK = {
 CHECKPOINTS = {
     # `bmad-check-implementation-readiness` a disparu en v6.12.0 : la gate est absorbée
     # par `bmad-sprint-planning`, qui la porte désormais.
-    "bmad-sprint-planning": "gate humain : PRD/UX/architecture/stories alignés avant d'engager l'implémentation",
-    "bmad-code-review": "issues → retour bmad-build (une relance) ; approuvé → story suivante ou fin d'epic",
+    "bmad-sprint-planning": (
+        "gate humain : PRD/UX/architecture/stories alignés avant d'engager l'implémentation"
+    ),
+    "bmad-code-review": (
+        "issues → retour bmad-build (une relance) ; approuvé → story suivante ou fin d'epic"
+    ),
 }
 # Étapes sans colonne `outputs` exploitable dans le CSV.
 CONTRAT_OVERRIDES = {
@@ -51,7 +60,10 @@ CONTRAT_OVERRIDES = {
     },
     "bmad-code-review": {
         "type": "llm",
-        "critere": "revue adversariale rendue avec triage des findings (pas de vérification déterministe possible)",
+        "critere": (
+            "revue adversariale rendue avec triage des findings "
+            "(pas de vérification déterministe possible)"
+        ),
     },
 }
 ETAPE_TERMINALE = {
@@ -61,7 +73,10 @@ ETAPE_TERMINALE = {
     "modele": "(session)",
     "contrat": {
         "type": "reel",
-        "critere": "definition-of-done projet : revue + correctifs appliqués + re-vérification réelle (obligation hors CSV, voir catalogue)",
+        "critere": (
+            "definition-of-done projet : revue + correctifs appliqués + "
+            "re-vérification réelle (obligation hors CSV, voir catalogue)"
+        ),
     },
     "checkpoint": "avant tout commit — action difficilement réversible, proposer, ne pas exécuter unilatéralement",
 }
@@ -126,7 +141,10 @@ def _etape(row):
             critere += f" dans {localisation}"
         contrat = {"type": "deterministe", "critere": critere}
     else:
-        contrat = {"type": "llm", "critere": "étape déclarée terminée par la skill, sans artefact vérifiable dans le CSV"}
+        contrat = {
+            "type": "llm",
+            "critere": "étape déclarée terminée par la skill, sans artefact vérifiable dans le CSV",
+        }
     return {
         "id": cle.replace(":", "-"),
         "agent": cle,
@@ -147,12 +165,19 @@ def generer():
 
     playbook = {
         "nom": "cycle-produit-bmad",
-        "description": "Cycle produit BMAD complet (v6.12.0) : brief → PRD → architecture → epics/stories → sprint (qui porte la gate readiness) → build → code-review, clos par revue-increment.",
+        "description": (
+            "Cycle produit BMAD complet (v6.12.0) : brief → PRD → architecture → "
+            "epics/stories → sprint (qui porte la gate readiness) → build → "
+            "code-review, clos par revue-increment."
+        ),
         "statut": "jamais-joue",
         "source": "genere:generate_bmad_playbook.py",
         "declencheurs": [
             "dérouler le cycle produit BMAD sur une idée/feature",
-            "demande explicite de workflow BMAD multi-étapes (sinon : bmad-help, une étape à la fois)",
+            (
+                "demande explicite de workflow BMAD multi-étapes "
+                "(sinon : bmad-help, une étape à la fois)"
+            ),
         ],
         "etapes": [_etape(r) for r in retenues] + [ETAPE_TERMINALE],
         "regle_reprise": "une relance ciblée par étape en échec de contrat, puis escalade utilisateur avec l'état réel",

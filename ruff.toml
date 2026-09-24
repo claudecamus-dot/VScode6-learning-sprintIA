@@ -1,8 +1,12 @@
 # Config minimale et honnete : regles de base (erreurs evidentes + imports),
 # pas de style force qui casserait tout le depot au premier passage.
 # Exclut _bmad/_bmad-output (fournisseurs tiers, non maintenus ici).
+# Exclut .claude : copies synchronisees du canon du hub de supervision VScode5
+# (banniere "GENERE - NE PAS EDITER LOCALEMENT" en tete de fichier) — leur
+# qualite se corrige au hub, une correction locale serait ecrasee au prochain
+# sync (arbitrage 2026-09-24).
 line-length = 100
-extend-exclude = ["_bmad", "_bmad-output", ".claude/skills"]
+extend-exclude = ["_bmad", "_bmad-output", ".claude"]
 
 [lint]
 select = ["E", "F", "I"]

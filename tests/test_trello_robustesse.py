@@ -45,7 +45,9 @@ def _client(session):
 # --- 8 : plus de KeyError brut --------------------------------------------
 
 def test_commentaire_sans_data_text_leve_une_erreur_typee_portant_l_id():
-    session = FakeSession({"/cards/card1/actions": [{"id": "a1", "date": "2026-01-01", "data": {}}]})
+    session = FakeSession(
+        {"/cards/card1/actions": [{"id": "a1", "date": "2026-01-01", "data": {}}]}
+    )
     with pytest.raises(TrelloSchemaError) as excinfo:
         _client(session).get_card_comments("card1")
     assert "card1" in str(excinfo.value)

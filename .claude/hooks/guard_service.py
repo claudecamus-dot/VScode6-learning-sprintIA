@@ -79,7 +79,8 @@ def _motif_segment(seg: str, mots: list) -> str | None:
     m = [_mot(t) for t in mots]
     w0 = m[0]
 
-    # serveur-dev.ps1 en position de commande (& x.ps1 | pwsh x.ps1 | powershell -File x.ps1 | ./x.ps1)
+    # serveur-dev.ps1 en position de commande
+    # (& x.ps1 | pwsh x.ps1 | powershell -File x.ps1 | ./x.ps1)
     for t in m[:4]:
         if t.endswith("serveur-dev.ps1"):
             if not re.search(r"-stoponly\b", seg, re.I):
