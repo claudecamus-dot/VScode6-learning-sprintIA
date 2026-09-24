@@ -41,8 +41,8 @@ def _exiger_skill_du_kit(nom_skill, module):
 
 _exiger_skill_du_kit("pptx-deck", "pptx_deck")
 sys.path.insert(0, os.path.join(_RACINE, ".claude", "skills", "pptx-deck", "scripts"))
-import pptx_deck as D  # noqa: E402
 import contenu_deck as C  # noqa: E402
+import pptx_deck as D  # noqa: E402
 
 #: Chemin du gabarit OCTO. Configurable via TEMPLATE_OCTO_PATH (constat
 #: d'audit 5) : le repli ci-dessous n'est valide que sur les postes qui ont
@@ -233,9 +233,9 @@ def _remplir_cadre(slide, cadre, scene, requete, repli, seed=0):
     sys.path.insert(0, os.path.join(
         os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
         ".claude", "skills", "pptx-framed-image", "scripts"))
-    from framed_image import place_image_in_frame, cover_crop_to_aspect
     import nature_images
     import stock_images
+    from framed_image import cover_crop_to_aspect, place_image_in_frame
 
     if cadre is None:
         print("  [chapitre %s] cadre introuvable — image non posee" % scene)

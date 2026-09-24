@@ -28,7 +28,6 @@ def _charger(chemin):
 def test_le_repli_openverse_journalise_un_warning_avec_le_type_d_exception(
         chemin, tmp_path, monkeypatch, caplog):
     from pptx import Presentation
-    from pptx.util import Inches
 
     g = _charger(chemin)
     monkeypatch.setattr(g, "IMG_DIR", str(tmp_path))

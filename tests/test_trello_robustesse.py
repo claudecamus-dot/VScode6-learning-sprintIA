@@ -1,7 +1,7 @@
 """Constats d'audit 8 (KeyError brut), 9 (429 / reseau), 10 (custom fields),
 11 (N+1 requetes) et 12 (pagination)."""
-import requests
 import pytest
+import requests
 
 from trello_client.client import (
     TrelloClient,

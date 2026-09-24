@@ -11,8 +11,8 @@ dimension robustesse) 1, 2 et 3 :
 Chaque test a ete verifie rouge en revertant temporairement la garde
 correspondante (voir rapport de la seance du 2026-09-23).
 """
-import requests
 import pytest
+import requests
 
 from trello_client.client import TrelloClient, TrelloSchemaError
 

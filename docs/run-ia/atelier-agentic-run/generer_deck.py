@@ -37,8 +37,8 @@ def _exiger_skill_du_kit(nom_skill, module):
 
 _exiger_skill_du_kit("pptx-deck", "pptx_deck")
 sys.path.insert(0, os.path.join(_RACINE, ".claude", "skills", "pptx-deck", "scripts"))
-import pptx_deck as D  # noqa: E402
 import contenu_deck as C  # noqa: E402
+import pptx_deck as D  # noqa: E402
 
 #: Chemin du gabarit OCTO. Configurable via TEMPLATE_OCTO_PATH (constat
 #: d'audit 5) : le repli ci-dessous n'est valide que sur les postes qui ont
@@ -221,9 +221,9 @@ def photo(slide, x, y, w, h, requete, repli, seed=0):
         os.environ.setdefault("SSL_CERT_FILE", certifi.where())
     except ImportError:
         pass
-    from framed_image import place_image_in_frame, cover_crop_to_aspect, round2diag_geom
     import nature_images
     import stock_images
+    from framed_image import cover_crop_to_aspect, place_image_in_frame, round2diag_geom
 
     aspect = w / h
     px_w = 960

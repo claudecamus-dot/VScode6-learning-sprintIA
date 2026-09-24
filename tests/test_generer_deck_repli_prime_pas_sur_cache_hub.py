@@ -25,7 +25,6 @@ def _charger(chemin):
 ])
 def test_photo_reelle_en_cache_prime_sur_repli_existant(chemin, tmp_path, monkeypatch):
     from pptx import Presentation
-    from pptx.util import Inches
 
     g = _charger(chemin)
     monkeypatch.setattr(g, "IMG_DIR", str(tmp_path))

@@ -15,7 +15,7 @@ credential Trello requis : le serveur est local.
 import json
 import threading
 from http.server import BaseHTTPRequestHandler, HTTPServer
-from urllib.parse import urlparse, parse_qs
+from urllib.parse import parse_qs, urlparse
 
 import pytest
 

@@ -22,12 +22,16 @@ maintenus ici) — source : `ruff.toml`.
 
 Commande : `ruff check .`
 
-État réel vérifié le 2026-09-24 : **la commande échoue actuellement**, 88 erreurs
-sur l'ensemble du dépôt (dont des `E501` lignes trop longues et des imports non
-triés `I001` dans `tests/`). Restreinte à `trello_client/` et `docs/run-ia/`
-(le code applicatif hors tests/kit), elle remonte 22 erreurs. Ne pas présenter
-`ruff check .` comme une commande verte tant que ces occurrences ne sont pas
-corrigées — c'est un écart réel, pas une convention.
+État réel vérifié le 2026-09-24 : **la commande échoue actuellement**, 79
+erreurs sur l'ensemble du dépôt (66 `E501`, 13 `E741`) après correctif ciblé
+`ruff check . --select I001,F401 --fix` (9 erreurs mécaniques corrigées —
+imports non triés et imports inutilisés — sur les 88 initiales, aucune
+correction de masse sur E501/E741). Suite de tests rejouée après le fix :
+45 passed. Plafonnée par `tests/test_lint_baseline.py` (modèle
+`VsCode4/tests/test_lint_baseline.py`) : toute hausse barre, toute baisse doit
+abaisser la baseline. Ne pas présenter `ruff check .` comme une commande verte
+tant que ces occurrences ne sont pas corrigées — c'est un écart réel, pas une
+convention.
 
 ## Dépendances épinglées
 
