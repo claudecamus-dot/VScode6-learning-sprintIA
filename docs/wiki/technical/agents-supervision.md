@@ -1,5 +1,5 @@
 ---
-updated: 2026-09-23
+updated: 2026-09-24
 generated-by: .claude/supervision/scan_transcripts.py (superviseur d'agents, étage 1)
 ---
 
@@ -8,7 +8,7 @@ generated-by: .claude/supervision/scan_transcripts.py (superviseur d'agents, ét
 > ⚠️ **Page générée automatiquement** (hook SessionStart → `.claude/supervision/scan_transcripts.py`).
 > **Ne pas éditer à la main** — toute modification serait écrasée au prochain scan.
 
-Dernier scan : 2026-09-23T21:20:55+02:00 · **4 sessions** (transcripts) · **8** invocations de skills · **3** lancements de sous-agents.
+Dernier scan : 2026-09-24T09:40:28+02:00 · **4 sessions** (transcripts) · **8** invocations de skills · **3** lancements de sous-agents.
 
 ## Skills — usage réel
 
@@ -80,7 +80,9 @@ _Constats clos par décision humaine (`.claude/supervision/arbitrages.json`) —
 
 ## Diagnostic qualitatif (étage 2 — `agent-supervisor`)
 
-_Diagnostic à jour — rien à signaler, tous les constats précédents ont été arbitrés._
+_Diagnostic à jour._
+
+1. **La CI de ce depot n a JAMAIS tourne : GitHub Actions est desactive pour le compte claudecamus-dot — un push vert ici ne prouve pas la CI** — Ne jamais declarer une verification CI faite sur ce depot tant que ce constat est ouvert : rejouer la suite en LOCAL (pytest + ruff, TEMPLATE_OCTO_PATH vers VSCode2) et le dire explicitement dans le message de commit ou le run · **Proposition** : Blocage hors code : ticket GitHub support (reinstatement) ouvert par l utilisateur le 2026-09-24. A la levee, declencher un run (push ou workflow_dispatch), verifier total_count > 0 et conclusion=success, puis fermer ce constat par arbitrage citant l URL du run
 
 _7 constat(s) de ce diagnostic écarté(s) par un arbitrage — pour en rouvrir un, demander au superviseur un `re_challenge` avec des données nouvelles :_
 
