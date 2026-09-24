@@ -1,5 +1,5 @@
 {
- "generated": "2026-09-17T17:31:35+02:00",
+ "generated": "2026-09-24T09:40:05+02:00",
  "findings": [
   {
    "categorie": "pratique-design",
@@ -9,7 +9,9 @@
    "recommandation": "Inscrire VSCode3 (docs/cadrage-ppt/generate_deck.py::slide_chapitre) comme implementation de reference des intercalaires de chapitre sur ce template, et VSCode4 (scripts/generate_deck_ohc.py::slide_chapitre) comme la variante a lire quand le layout cible n'est pas le 50.",
    "proposition": "Ajouter au canon du hub, dans deck-design-library/references/template-octo.md : (1) au §5, une ligne « Intercalaire de chapitre | 2 | 50 - Chapitre [1] | idx0 titre (+ sous-titre en 2e paragraphe) - idx1 numero ; cadre photo teardrop OBLIGATOIRE a remplir » ; (2) un §5bis « Deux pieges du layout Chapitre » portant le numero a 17pt/marges zero/sans-puce/ancrage MIDDLE et le remplissage du cadre teardrop via pptx-framed-image, avec renvoi nominatif aux deux implementations de reference. Puis resynchroniser l'export vers les projets.",
    "priorite": 3,
-   "vu_le": "2026-09-17"
+   "vu_le": "2026-09-17",
+   "owner": "hub:deck-design-library/template-octo.md",
+   "echeance": "2026-10-01"
   },
   {
    "categorie": "pratique-design",
@@ -19,7 +21,9 @@
    "recommandation": "Decaler la boite de texte au-dela du guillemet, avec un retrait symetrique pour que le bloc centre reste centre : x = l + retrait, largeur = w - 2*retrait, retrait >= 0.60in a 24pt.",
    "proposition": "Dans add_quote_banner, remplacer `add_text_runs(slide, l + 0.20, t, w - 0.40, h, ...)` par un retrait parametrable `retrait=0.62` (proportionnel a la taille du guillemet si celle-ci devient un argument) : `add_text_runs(slide, l + retrait, t, w - 2 * retrait, h, ...)`. Ajouter au test du module un cas a phrase longue qui remplit la premiere ligne, et verifier que le debut du texte commence apres le guillemet.",
    "priorite": 3,
-   "vu_le": "2026-09-17"
+   "vu_le": "2026-09-17",
+   "owner": "hub:pptx-deck/add_quote_banner",
+   "echeance": "2026-10-01"
   },
   {
    "categorie": "verification-manquante",
@@ -29,7 +33,9 @@
    "recommandation": "Ajouter au module un controle de validite des dimensions, en amont des quatre autres : toute forme dont width <= 0 ou height <= 0 est un fichier invalide, pas un defaut de mise en page.",
    "proposition": "Dans verifier_geometrie, avant le test de bornes : `if shp.width <= 0 or shp.height <= 0: problemes.append(f\"slide {num}: '{shp.name}' dimension non positive (w={w:.2f} h={h:.2f}) — PowerPoint refusera d'ouvrir le fichier\")`. Zero faux positif possible (une dimension nulle ou negative n'a aucun usage legitime) et cela transforme une bisection manuelle en un message immediat.",
    "priorite": 4,
-   "vu_le": "2026-09-17"
+   "vu_le": "2026-09-17",
+   "owner": "hub:pptx-deck/verifier_geometrie",
+   "echeance": "2026-10-01"
   },
   {
    "categorie": "pratique-design",
@@ -39,7 +45,9 @@
    "recommandation": "Ne pas changer les defauts (ils servent d'autres gabarits), mais documenter dans la fiche du template la calibration MESUREE pour Outfit, et rappeler dans la skill que ces deux valeurs se re-mesurent sur un rendu reel avant d'etre utilisees sur un nouveau gabarit.",
    "proposition": "Ajouter a deck-design-library/references/template-octo.md un paragraphe « Calibration typographique mesuree » : Outfit ~14.8 car./pouce a 10.5pt, hauteur de ligne ~0.19in a interligne 1.1 ; passer cpi_ref=14.0 a estimer_lignes et cpi_pessimiste=14.0 a verifier_debordements_texte sur ce gabarit. Et dans SKILL.md de pptx-deck, une ligne : « ces calibrations sont des DEFAUTS, pas des constantes universelles — les re-mesurer sur un rendu reel du gabarit cible ».",
    "priorite": 3,
-   "vu_le": "2026-09-17"
+   "vu_le": "2026-09-17",
+   "owner": "hub:pptx-deck/estimer_lignes",
+   "echeance": "2026-10-01"
   },
   {
    "categorie": "pratique-design",
@@ -49,7 +57,9 @@
    "recommandation": "Exposer la hauteur consommee comme une constante du module, pour que l'appelant dimensionne sa carte sans la deviner.",
    "proposition": "Dans pptx_deck.py : `H_CARD_HEADER = 0.545  # 0.36 (libelle) + 0.045 (filet) + 0.14 (respiration)`, utilisee par add_card_header et citee dans sa docstring et dans SKILL.md.",
    "priorite": 2,
-   "vu_le": "2026-09-17"
+   "vu_le": "2026-09-17",
+   "owner": "hub:pptx-deck/add_card_header",
+   "echeance": "2026-10-01"
   },
   {
    "categorie": "pratique-design",
@@ -59,7 +69,9 @@
    "recommandation": "Soit honorer text_color quand il est fourni explicitement, soit refuser l'appel plutot que de l'ignorer.",
    "proposition": "Signature `add_chip(..., text_color=None, ...)` ; en mode outline `txt = text_color or color` ; en mode plein `txt = text_color or '#ffffff'`. Retro-compatible (les appels actuels qui comptent sur txt=color ne passent pas text_color en outline), et un appelant explicite obtient ce qu'il demande.",
    "priorite": 2,
-   "vu_le": "2026-09-17"
+   "vu_le": "2026-09-17",
+   "owner": "hub:pptx-deck/add_chip",
+   "echeance": "2026-10-01"
   },
   {
    "categorie": "pratique-design",
@@ -69,7 +81,23 @@
    "recommandation": "Documenter la geometrie et la regle de pose du libelle dans l'entree du composant chevron.",
    "proposition": "Ajouter au composant transversal 3 : « l'encoche vaut adj x min(w, h) de CHAQUE cote ; a adj=0.5 elle mange 42 % d'un chevron de 1.18x0.50in. Poser le libelle DANS la forme (text_frame du chevron, marges laterales = encoche, ancrage MIDDLE) et non dans une boite flottante centree sur le cadre exterieur — sinon il chevauche les biseaux. Descendre adj a ~0.20 des que la chaine depasse 5 elements. » Un seul objet dans PowerPoint, en prime.",
    "priorite": 2,
-   "vu_le": "2026-09-17"
+   "vu_le": "2026-09-17",
+   "owner": "hub:deck-design-library/composant-chevron",
+   "echeance": "2026-10-01"
+  },
+  {
+   "categorie": "verification-manquante",
+   "cible": "VScode6:ci-jamais-executee-actions-desactive-compte",
+   "priorite": 2,
+   "perimetre": "flotte",
+   "titre": "La CI de ce depot n a JAMAIS tourne : GitHub Actions est desactive pour le compte claudecamus-dot — un push vert ici ne prouve pas la CI",
+   "preuve": "gh api repos/claudecamus-dot/VScode6-learning-sprintIA/actions/runs --jq .total_count -> 0 ; gh api -X POST .../actions/workflows/tests.yml/dispatches -f ref=master -> HTTP 422 Actions has been disabled for this user ; curl -s -o /dev/null -w %{http_code} https://api.github.com/users/claudecamus-dot -> 404 (compte masque) ; mesure 2026-09-24 depuis le hub VScode5",
+   "recommandation": "Ne jamais declarer une verification CI faite sur ce depot tant que ce constat est ouvert : rejouer la suite en LOCAL (pytest + ruff, TEMPLATE_OCTO_PATH vers VSCode2) et le dire explicitement dans le message de commit ou le run",
+   "proposition": "Blocage hors code : ticket GitHub support (reinstatement) ouvert par l utilisateur le 2026-09-24. A la levee, declencher un run (push ou workflow_dispatch), verifier total_count > 0 et conclusion=success, puis fermer ce constat par arbitrage citant l URL du run",
+   "vu_le": "2026-09-24",
+   "re_challenge": true,
+   "owner": "VScode6:ci-jamais-executee-actions-desactive-compte",
+   "echeance": "2026-10-08"
   }
  ]
 }
