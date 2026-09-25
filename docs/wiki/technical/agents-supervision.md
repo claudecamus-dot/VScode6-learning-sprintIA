@@ -1,5 +1,5 @@
 ---
-updated: 2026-09-24
+updated: 2026-09-25
 generated-by: .claude/supervision/scan_transcripts.py (superviseur d'agents, étage 1)
 ---
 
@@ -8,7 +8,7 @@ generated-by: .claude/supervision/scan_transcripts.py (superviseur d'agents, ét
 > ⚠️ **Page générée automatiquement** (hook SessionStart → `.claude/supervision/scan_transcripts.py`).
 > **Ne pas éditer à la main** — toute modification serait écrasée au prochain scan.
 
-Dernier scan : 2026-09-24T09:40:28+02:00 · **4 sessions** (transcripts) · **8** invocations de skills · **3** lancements de sous-agents.
+Dernier scan : 2026-09-25T10:16:44+02:00 · **4 sessions** (transcripts) · **8** invocations de skills · **3** lancements de sous-agents.
 
 ## Skills — usage réel
 
@@ -77,14 +77,13 @@ _Constats clos par décision humaine (`.claude/supervision/arbitrages.json`) —
 - **`hub:pptx-deck/add_chip`** (2026-09-21) : REFUSE (deja fait, constat) : text_color=None par defaut (sentinelle), et 'txt = text_color or color' en mode outline (ligne 579), 'txt = text_color or #ffffff' en mode plein (ligne 582), avec docstring datee du 2026-09-18 expliquant pourquoi None (pas #ffffff) etait necessaire ; l'arbitrage precedent portait un titre sans les backticks et n'a pas ferme ce constat.
 - **`hub:deck-design-library/template-octo.md`** (2026-09-22) : ACCEPTE + APPLIQUE (cote hub) : deck-design-library/references/template-octo.md complete avec le layout 50-Chapitre (5), un paragraphe 5bis documentant les 2 pieges (numero 17pt/marges zero/sans-puce/MIDDLE, cadre teardrop a remplir) et le renvoi nominatif aux 2 implementations de reference (VSCode3 generate_deck.py::slide_chapitre, VSCode4 generate_deck_ohc.py::slide_chapitre).
 - **`hub:pptx-deck/estimer_lignes`** (2026-09-22) : ACCEPTE + APPLIQUE (cote hub, defauts non changes comme recommande) : deck-design-library/references/template-octo.md porte desormais un 4bis 'Calibration typographique mesuree' (Outfit ~14.8 car/pouce a 10.5pt, cpi_ref/cpi_pessimiste=14.0 sur ce gabarit precis). pptx-deck/SKILL.md renvoie explicitement a cette section et rappelle que ces calibrations sont des defauts a re-mesurer, pas des constantes universelles.
+- **`VScode6:ci-jamais-executee-actions-desactive-compte`** (2026-09-24) : DIFFERE — report assume sur demande utilisateur du 2026-09-24 : blocage hors depot (GitHub, HTTP 422, ticket support reinstatement du 2026-09-24). La consigne reste valable pour toute session : rejouer la suite en LOCAL et le dire. ROUVRIR au premier run Actions (total_count > 0, conclusion success), arbitrage de cloture citant l URL du run
 
 ## Diagnostic qualitatif (étage 2 — `agent-supervisor`)
 
-_Diagnostic à jour._
+_Diagnostic à jour — rien à signaler, tous les constats précédents ont été arbitrés._
 
-1. **La CI de ce depot n a JAMAIS tourne : GitHub Actions est desactive pour le compte claudecamus-dot — un push vert ici ne prouve pas la CI** — Ne jamais declarer une verification CI faite sur ce depot tant que ce constat est ouvert : rejouer la suite en LOCAL (pytest + ruff, TEMPLATE_OCTO_PATH vers VSCode2) et le dire explicitement dans le message de commit ou le run · **Proposition** : Blocage hors code : ticket GitHub support (reinstatement) ouvert par l utilisateur le 2026-09-24. A la levee, declencher un run (push ou workflow_dispatch), verifier total_count > 0 et conclusion=success, puis fermer ce constat par arbitrage citant l URL du run
-
-_7 constat(s) de ce diagnostic écarté(s) par un arbitrage — pour en rouvrir un, demander au superviseur un `re_challenge` avec des données nouvelles :_
+_8 constat(s) de ce diagnostic écarté(s) par un arbitrage — pour en rouvrir un, demander au superviseur un `re_challenge` avec des données nouvelles :_
 
 - ~~Les slides de chapitre de reference de la flotte sont chez VSCode3 et VSCode4, et la bibliotheque de design ne le dit pas~~ (`hub:deck-design-library/template-octo.md`)
 - ~~add_quote_banner fait passer la premiere ligne du texte SOUS son guillemet decoratif~~ (`hub:pptx-deck/add_quote_banner`)
@@ -93,6 +92,7 @@ _7 constat(s) de ce diagnostic écarté(s) par un arbitrage — pour en rouvrir 
 - ~~add_card_header consomme 0.545in sans que sa hauteur soit documentee, ce qui fait deborder la derniere puce des cartes a en-tete~~ (`hub:pptx-deck/add_card_header`)
 - ~~add_chip(outline=True) ignore silencieusement text_color et rend des pastilles vides si `color` est clair~~ (`hub:pptx-deck/add_chip`)
 - ~~L'encoche d'un chevron vaut adj x le PLUS PETIT COTE : le catalogue ne le dit pas, et un libelle centre sur le cadre chevauche les biseaux~~ (`hub:deck-design-library/composant-chevron`)
+- ~~La CI de ce depot n a JAMAIS tourne : GitHub Actions est desactive pour le compte claudecamus-dot — un push vert ici ne prouve pas la CI~~ (`VScode6:ci-jamais-executee-actions-desactive-compte`)
 
 ## Seuil de qualification — la mesure
 
