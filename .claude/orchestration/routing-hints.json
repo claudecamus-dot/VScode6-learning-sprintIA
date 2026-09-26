@@ -1,5 +1,5 @@
 {
- "generated": "2026-09-25T10:16:44+02:00",
+ "generated": "2026-09-25T14:00:36+02:00",
  "eprouves": [
   "agent-orchestrator",
   "bmad-review",
@@ -192,7 +192,7 @@
  ],
  "mesure_incomplete": {
   "transcripts_absents": 0,
-  "total_fichiers": 4,
+  "total_fichiers": 5,
   "dernier_evenement": "2026-09-18T12:52:55.651Z",
   "journal_usage_muet": false
  },
