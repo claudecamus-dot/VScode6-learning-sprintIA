@@ -65,6 +65,7 @@ import re
 import shlex
 import subprocess
 import sys
+import threading
 import unicodedata
 
 try:  # réutilise le tokenizer éprouvé du guard voisin ; sinon, dégrade en silence
@@ -480,10 +481,7 @@ def _session_signals(transcript_path, verif_bash=None, verif_skill=None, disposi
                             sig["verif"] = True
                         if skill in _DOD_SKILL:
                             sig["dod"] = True
-                if (
-                    sig["verif"] and sig["dod"] and sig["journal"]
-                    and (not dispositif_tests or sig["dispositif"])
-                ):
+                if sig["verif"] and sig["dod"] and sig["journal"] and (not dispositif_tests or sig["dispositif"]):
                     return sig
     except Exception:
         return {"verif": False, "dod": False, "journal": False, "dispositif": False}
@@ -655,8 +653,7 @@ def _diff_ajoute(cwd, commit_flags) -> str:
     if r.returncode != 0 or r.stdout is None:
         return ""
     return chr(10).join(
-        line for line in r.stdout.splitlines()
-        if line.startswith("+") and not line.startswith("+++")
+        l for l in r.stdout.splitlines() if l.startswith("+") and not l.startswith("+++")
     )
 
 
@@ -707,7 +704,7 @@ def _sites_nus(cwd, forme_nue: str, prefixes) -> list[str]:
         return []
     if r.returncode not in (0, 1) or not r.stdout:
         return []
-    return [line for line in r.stdout.splitlines() if line.strip()]
+    return [l for l in r.stdout.splitlines() if l.strip()]
 
 
 def _freres_nus(cwd, diff_ajoute: str, fichiers_du_commit, prefixes) -> list[tuple]:
@@ -798,9 +795,32 @@ def _build_warning_lot(fichiers, plafond) -> str:
     )
 
 
+# --- bounded stdin read (anthropics/claude-code#87289) ---------------------
+# Claude Code does not enforce a hook's timeout while it is blocked reading
+# stdin: an unclosed pipe hangs the hook (and the launcher timeout does not
+# kill the child python.exe). Read in a daemon thread and give up after 5 s;
+# on timeout the existing fail-open path (silent return, non-blocking hook)
+# applies, same as any other unparsable payload.
+def _stdin_borne(delai: float = 5.0):
+    boite = {}
+
+    def _cible():
+        try:
+            boite["v"] = sys.stdin.read()
+        except BaseException:  # noqa: BLE001 - never raise from the reader
+            boite["v"] = None
+
+    fil = threading.Thread(target=_cible, daemon=True)
+    fil.start()
+    fil.join(delai)
+    if fil.is_alive() or boite.get("v") is None:
+        raise ValueError("stdin non recu")
+    return boite["v"]
+
+
 def main() -> None:
     try:
-        data = json.load(sys.stdin)
+        data = json.loads(_stdin_borne())
     except Exception:
         return
     cmd = (data.get("tool_input") or {}).get("command") or ""

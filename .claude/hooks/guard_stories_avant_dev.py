@@ -63,9 +63,36 @@ def _laisser_passer():
     sys.exit(0)
 
 
+
+# --- bounded stdin read (anthropics/claude-code#87289) -------------------------
+try:
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    from _stdin_borne import lire_stdin_octets_borne as _lob
+except Exception:  # noqa: BLE001 - exported without the helper: still bounded
+    def _lob(delai=5.0, flux=None):
+        import threading
+        f = flux if flux is not None else sys.stdin.buffer
+        boite = {}
+
+        def _c():
+            try:
+                boite["v"] = f.read()
+            except BaseException:  # noqa: BLE001
+                boite["v"] = None
+        t = threading.Thread(target=_c, daemon=True)
+        t.start()
+        t.join(delai)
+        return None if t.is_alive() else boite.get("v")
+
+
 def main() -> None:
     try:
-        data = json.loads(sys.stdin.buffer.read().decode("utf-8", "replace"))
+        # Lecture BORNEE (anthropics/claude-code#87289) : un pipe jamais ferme ne doit
+        # plus bloquer le hook indefiniment. Timeout -> None -> fail-open (docstring).
+        brut = _lob(5.0)
+        if brut is None:
+            _laisser_passer()
+        data = json.loads(brut.decode("utf-8", "replace"))
     except Exception:   # noqa: BLE001 - fail-open
         _laisser_passer()
 
