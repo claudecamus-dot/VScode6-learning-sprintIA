@@ -1,5 +1,5 @@
 {
- "generated": "2026-09-25T14:00:36+02:00",
+ "generated": "2026-09-29T09:13:57+02:00",
  "eprouves": [
   "agent-orchestrator",
   "bmad-review",
@@ -37,11 +37,14 @@
   "bmad-walkthrough",
   "restitution-deck-design",
   "revue-increment",
-  "skill-creator",
-  "synced",
   "veille-agentic"
  ],
  "contredit_par_skill_doctor": [],
+ "mesure_skill_doctor_perimee": false,
+ "absents_du_disque": [
+  "skill-creator",
+  "synced"
+ ],
  "bibliotheque_reference": [
   "pdf-quality",
   "pptx-deck",
