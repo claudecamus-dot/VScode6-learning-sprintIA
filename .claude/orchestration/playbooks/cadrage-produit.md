@@ -118,3 +118,8 @@ réelle encore. À faire évoluer vers `eprouve` après un premier run réussi
   "regle_reprise": "une relance ciblée par étape en échec de contrat, puis escalade utilisateur avec l'état réel"
 }
 ```
+
+<!-- SOCLE-PROVENANCE: socle : 33c585a du 2026-09-29 -->
+> **Socle généré** — tout ce qui PRÉCÈDE ce bandeau vient du hub de supervision (`33c585a`, 2026-09-29) et sera **réécrit** à la prochaine propagation.
+> Le chapitre « Portée sur ce projet » placé après ce bandeau, lui, n'est jamais réécrit : c'est le travail local.
+
