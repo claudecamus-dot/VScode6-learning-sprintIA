@@ -133,7 +133,10 @@ def findings_ouverts():
                             "titre": (f.get("titre") or "").strip(),
                             "categorie": (f.get("categorie") or "").strip(),
                             "owner": (f.get("owner") or "").strip(),
-                            "echeance": str(f.get("echeance") or "").strip()})
+                            "echeance": str(f.get("echeance") or "").strip(),
+                            # Rebuilt dict: forgetting this key rendered an
+                            # unverified finding as asserted (2026-09-29).
+                            "statut_preuve": f.get("statut_preuve") or "mesure"})
     return ouverts
 
 
@@ -507,8 +510,7 @@ def ligne_plans_non_arbitres(repertoire=None):
     nom, age = orphelins[0]
     reste = f" (+{len(orphelins) - 1} autre(s))" if len(orphelins) > 1 else ""
     return _ascii(
-        f"{len(orphelins)} plan(s) de docs/wiki/technical attendent un arbitrage : "
-        f"{nom}, {age} j{reste}"
+        f"{len(orphelins)} plan(s) de docs/wiki/technical attendent un arbitrage : {nom}, {age} j{reste}"
         " -- hors du canal de decision, un plan n'est jamais applique. Le reverser"
         " en finding(s) : py .claude/supervision/write_diagnostic.py --fusionner"
         )
@@ -562,7 +564,8 @@ def _date_plus_ancien_non_propage(source_rel, blob_copie):
         out = subprocess.run(
             ["git", "log", "-n", "40", "--format=C %cI", "--raw", "--abbrev=40",
              "--no-renames", "--", source_rel],
-            cwd=RACINE, capture_output=True, text=True, encoding="utf-8", timeout=15)
+            cwd=RACINE, capture_output=True, text=True, encoding="utf-8",
+            errors="replace", timeout=15)
     except Exception:  # pragma: no cover - fail-open
         return None
     if out.returncode != 0:
@@ -631,8 +634,13 @@ def ligne_derive_bloquante(derives, kit_installe, carte, projets=None):
     cibles = sorted({p for p, _d, _a in retards})
     return _ascii(
         "BLOQUANT -- {} correctif(s) du kit attendent depuis plus de {} j sur {} cible(s)"
-        " ({} ; le plus ancien : {} chez {}, {} j). Propager MAINTENANT :"
-        " py export/install_agentic.py --dry-run \"{}\" puis sans --dry-run"
+        " ({} ; le plus ancien : {} chez {}, {} j). Propager MAINTENANT (cible deja"
+        " installee : install_agentic sans --force est une no-op, avec --force il ecrase"
+        " le local — finding install_agentic:force-ecrase-les-fichiers-locaux) :"
+        " py .claude/dispositif/propager_socle.py --appliquer --projet <NOM>, puis"
+        " --copie-integrale --poser-absents --appliquer --projet <NOM> (fichiers absents"
+        " et retards purs), puis"
+        " py .claude/dispositif/sync_dispositif.py --projet <NOM> (cible : \"{}\")"
         .format(len(retards), SEUIL_DERIVE_BLOQUANTE_JOURS, len(cibles), ", ".join(cibles),
                 destination, projet, age, chemin))
 
