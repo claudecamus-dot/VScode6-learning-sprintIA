@@ -75,6 +75,8 @@ def test_titre_de_veille_hostile_ne_peut_pas_injecter_une_ligne(monkeypatch, cap
     monkeypatch.setattr(point_du_jour, "ligne_decisions_audit", lambda: "")
     monkeypatch.setattr(point_du_jour, "trouvailles_ouvertes", lambda: [entree])
     monkeypatch.setattr(point_du_jour, "trouvailles_en_attente", lambda: (1, 5))
+    # Le compteur de git.exe orphelins (kit 2026-10-03) lit le poste reel : isole.
+    monkeypatch.setattr(point_du_jour, "lister_git_exe", lambda *a, **kw: [])
 
     point_du_jour.main()
     lignes = [ligne for ligne in capsys.readouterr().out.splitlines() if ligne.strip()]
@@ -162,6 +164,7 @@ def test_point_du_jour_fail_open_sur_mesure_qui_plante(monkeypatch, capsys):
     monkeypatch.setattr(point_du_jour, "ligne_decisions_audit", lambda: "")
     monkeypatch.setattr(point_du_jour, "trouvailles_ouvertes", lambda: [])
     monkeypatch.setattr(point_du_jour, "trouvailles_en_attente", lambda: (0, None))
+    monkeypatch.setattr(point_du_jour, "lister_git_exe", lambda *a, **kw: [])
 
     code = point_du_jour.main()
     sortie = capsys.readouterr().out
