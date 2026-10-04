@@ -122,7 +122,11 @@ class TrelloClient:
                 if opt_id is None or not isinstance(valeur, dict):
                     continue
                 options[opt_id] = valeur.get("text", "")
-            result[field_id] = {"name": f.get("name", field_id), "options": options}
+            result[field_id] = {
+                "name": f.get("name", field_id),
+                "type": f.get("type"),
+                "options": options,
+            }
         return result
 
     def get_card_comments(self, card_id: str) -> list:
