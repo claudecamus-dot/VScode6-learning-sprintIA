@@ -1050,6 +1050,9 @@ def slide_decisions(prs):
 
 # --------------------------------------------------------------------------
 def construire(sortie=SORTIE):
+    if not os.path.isfile(TEMPLATE):
+        raise FileNotFoundError(
+            f"Gabarit OCTO introuvable : {TEMPLATE} (definir TEMPLATE_OCTO_PATH)")
     prs = Presentation(TEMPLATE)
     D.clear_slides(prs)
     _init_couleurs(prs)
