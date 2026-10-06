@@ -78,7 +78,7 @@ SORTIE = os.path.join(os.path.dirname(os.path.abspath(__file__)),
 # generateurs (deck_commun.py). Calibration CPI/COEF_LIGNE documentee la-bas.
 THEME = {}
 NAVY = CYAN = MUTED = LINE = BG = SLATE = ""
-_K = K.Commun(D, sep=" ")
+_K = K.Commun(D)
 
 
 def _init_couleurs(prs):
