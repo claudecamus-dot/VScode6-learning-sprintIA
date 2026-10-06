@@ -14,7 +14,6 @@ Usage : python generer_deck.py [chemin_sortie.pptx]
 """
 import logging
 import os
-import re
 import sys
 
 from pptx import Presentation
@@ -42,7 +41,24 @@ def _exiger_skill_du_kit(nom_skill, module):
 _exiger_skill_du_kit("pptx-deck", "pptx_deck")
 sys.path.insert(0, os.path.join(_RACINE, ".claude", "skills", "pptx-deck", "scripts"))
 import contenu_deck as C  # noqa: E402
+import deck_commun as K  # noqa: E402
 import pptx_deck as D  # noqa: E402
+from deck_commun import (  # noqa: E402,F401
+    B_CONT,
+    COEF_LIGNE,
+    CPI_LAYOUT,
+    CW,
+    H_HEADER,
+    LAYOUT_COUVERTURE,
+    LAYOUT_TITRE_SEUL,
+    NBSP,
+    PAD_BOITE,
+    RETRAIT_BANDEAU,
+    T_CLAIM,
+    T_CONT,
+    L,
+    R,
+)
 
 #: Chemin du gabarit OCTO. Configurable via TEMPLATE_OCTO_PATH (constat
 #: d'audit 5) : le repli ci-dessous n'est valide que sur les postes qui ont
@@ -59,15 +75,7 @@ SORTIE = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                       "AGENTIC-PRODUCT-RUN-offre-octo.pptx")
 
 # --- Gabarit mesure sur le template (cf. deck-design-library/template-octo.md) ---
-L = 0.615            # marge gauche = left du placeholder titre du layout 5
-R = 9.15             # bord droit utile : le badge de pagination commence a 9.25
-CW = R - L           # 8.535 in
-T_CLAIM = 0.86       # sous le placeholder titre (0.395 -> 0.801)
-T_CONT = 1.28        # haut de la bande de contenu
-B_CONT = 5.25        # bas utile
 
-LAYOUT_COUVERTURE = 8
-LAYOUT_TITRE_SEUL = 5
 # « 50 - Chapitre [1] » : idx0 titre, idx1 numero, cadre photo teardrop.
 # Ce template est le MEME fichier que celui de VSCode3 (md5 identique, cf.
 # deck-design-library/template-octo.md), donc sa geometrie de chapitre est
@@ -76,123 +84,29 @@ LAYOUT_TITRE_SEUL = 5
 LAYOUT_CHAPITRE = 2
 IMG_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "_img")
 
-# Calibration MESUREE sur un rendu PowerPoint reel du template (police Outfit,
-# 2026-09-17) : 56 caracteres tenaient sur 3.78in a 10.5pt, soit ~14.8 car./pouce,
-# la ou la valeur par defaut de pptx_deck (10.7, calibree sur une police plus
-# large) en predisait 40. Garder 10.7 gonflait chaque carte de ~40 % et produisait
-# des panneaux aux trois quarts vides. 13.0 = mesure moins une marge de securite.
-CPI_LAYOUT = 14.0
-# Hauteur de ligne mesuree au meme rendu : ~0.19in a 10.5pt interligne 1.1.
-COEF_LIGNE = 0.0185
-PAD_BOITE = 0.06
-# Hauteur reellement consommee par D.add_card_header (libelle + filet d'accent) :
-# 0.36 + 0.045 + 0.14. La budgeter a 0.32 faisait deborder la derniere puce de
-# chaque carte a en-tete (constat du 2026-09-17, slide « Comment cette offre se vend »).
-H_HEADER = 0.545
-
+# Constantes de grille, modele de hauteur et bandeau : code commun aux deux
+# generateurs (deck_commun.py). Calibration CPI/COEF_LIGNE documentee la-bas.
 THEME = {}
 NAVY = CYAN = MUTED = LINE = BG = SLATE = ""
+_K = K.Commun(D)
 
 
 def _init_couleurs(prs):
     global THEME, NAVY, CYAN, MUTED, LINE, BG, SLATE
-    THEME = D.theme_colors(prs)
-    NAVY = THEME.get("dk1", "#0E2356")
-    CYAN = THEME.get("accent3", "#00D2DD")
-    MUTED = THEME.get("lt2", "#586586")
-    SLATE = THEME.get("dk2", "#3E4F78")
-    LINE = THEME.get("accent5", "#CFD3DD")
-    BG = THEME.get("accent6", "#E7E9EE")
+    THEME, NAVY, CYAN, MUTED, LINE, BG, SLATE = _K.couleurs(prs)
 
 
-# --- modele de hauteur, aligne sur le verificateur ---------------------------
-NBSP = " "
-
-
-def typo_fr(texte):
-    """Espace insecable devant la ponctuation haute et avant « % ».
-
-    Deux effets : la typographie francaise est respectee, et PowerPoint cesse
-    de rejeter un « ? » orphelin sur sa propre ligne (constat du 2026-09-17,
-    slide « Ce que je vous demande de trancher »).
-    """
-    if not isinstance(texte, str):
-        return texte
-    return re.sub(r" (?=[?!:;%])", NBSP, texte)
-
-
-def lh(size):
-    return size * COEF_LIGNE
-
-
-def nlignes(texte, w, size):
-    return D.estimer_lignes(texte, w, size, cpi_ref=CPI_LAYOUT)
-
-
-def hbox(texte, w, size):
-    """Hauteur de boite suffisante pour `texte` a `size` pt sur `w` pouces."""
-    return nlignes(texte, w, size) * lh(size) + PAD_BOITE
-
-
-def hbox_max(textes, w, size):
-    return max(hbox(t, w, size) for t in textes)
-
-
-def reste(bas, souhaite, mini=0.30):
-    """Hauteur disponible entre `bas` et le bas de bande, bornee par `souhaite`.
-
-    Leve si le contenu a deja mange la bande : une hauteur negative produit une
-    forme invalide que python-pptx accepte et que PowerPoint refuse d'ouvrir
-    (HRESULT 0x80070570) — defaut constate le 2026-09-17 sur la slide Readiness.
-    """
-    dispo = B_CONT - bas
-    if dispo < mini:
-        raise ValueError(
-            "bande de contenu saturee : %.2fin disponibles sous y=%.2f "
-            "(minimum %.2f) — raccourcir le contenu ou reduire les blocs"
-            % (dispo, bas, mini))
-    return min(souhaite, dispo)
-
-
-# Retrait lateral du texte dans le bandeau : le guillemet decoratif occupe
-# ~0.40in a gauche. `D.add_quote_banner` place sa boite de texte a +0.20in
-# seulement, si bien que la premiere ligne d'une phrase longue MARCHE SUR le
-# guillemet (constat utilisateur du 2026-09-17, slides 7/12/13/14/17). On
-# redessine donc le bandeau ici, avec un retrait symetrique — le helper du hub
-# n'est pas modifie depuis ce projet (regle : corriger au hub, jamais dans une
-# copie locale).
-RETRAIT_BANDEAU = 0.62
-
-
-def hauteur_bandeau(texte, size=13.5):
-    return (nlignes(typo_fr(texte), CW - 2 * RETRAIT_BANDEAU, size) * lh(size)
-            + 0.17)
+typo_fr = _K.typo_fr
+lh = K.lh
+nlignes = _K.nlignes
+hbox = _K.hbox
+hbox_max = _K.hbox_max
+reste = K.reste
+hauteur_bandeau = _K.hauteur_bandeau
 
 
 def bandeau(slide, bas, texte, size=13.5):
-    """Bandeau de cloture, dimensionne sur SON texte puis cale en bas de bande.
-
-    Une hauteur constante tronquait la derniere ligne au rendu (constat du
-    2026-09-17) : la hauteur se calcule, elle ne se pose pas.
-    """
-    texte = typo_fr(texte)
-    h = hauteur_bandeau(texte, size)
-    y = B_CONT - h
-    if y < bas + 0.10:
-        raise ValueError(
-            "bandeau de %.2fin ne tient pas sous y=%.2f (bas de bande %.2f)"
-            % (h, bas, B_CONT))
-    D.add_rect(slide, L, y, CW, h, fill=NAVY, rounded=True, radius=0.10)
-    # guillemet decoratif, hors du flux du texte
-    D.add_text(slide, L + 0.16, y + 0.02, 0.40, min(0.40, h - 0.04),
-               [("“", {"size": 24, "bold": True, "color": CYAN})])
-    D.add_text_runs(slide, L + RETRAIT_BANDEAU, y, CW - 2 * RETRAIT_BANDEAU, h,
-                    [([(texte, {"size": size, "bold": True,
-                                "color": "#FFFFFF"}),
-                       ("  •", {"size": size, "bold": True,
-                                      "color": CYAN})],
-                      {"align": PP_ALIGN.CENTER})],
-                    anchor=MSO_ANCHOR.MIDDLE)
+    _K.bandeau(slide, bas, texte, NAVY, CYAN, size)
 
 
 def page(prs, titre, claim):
