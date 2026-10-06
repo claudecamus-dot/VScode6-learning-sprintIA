@@ -43,9 +43,8 @@ class Commun:
     """Fonctions partagees, liees a un module `pptx_deck` (D) et a la chaine
     inseree devant la ponctuation haute (`sep`).
 
-    L'atelier passe `sep=" "` (espace simple) : c'est le comportement historique
-    de son `typo_fr`, conserve a l'identique par ce refactor (voir le rapport :
-    la valeur d'origine etait probablement une espace insecable perdue).
+    Les deux generateurs utilisent le defaut (U+00A0) ; `sep` reste un reglage
+    par instance (voir tests/test_deck_commun.py).
     """
 
     def __init__(self, D, sep=NBSP):
